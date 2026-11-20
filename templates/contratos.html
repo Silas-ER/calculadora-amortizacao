@@ -5,12 +5,15 @@
   <div>
     <p class="sobretitulo">Meus contratos</p>
     <h1>{% if itens %}Seus imóveis, num só lugar.{% else %}Vamos começar?{% endif %}</h1>
-    <p class="subtitulo">{% if itens %}Escolha um contrato para acompanhar.{% else %}Simule um financiamento ou importe a planilha do seu banco.{% endif %}</p>
+    <p class="subtitulo">{% if itens %}Escolha um contrato para acompanhar.{% else %}Cadastre seu contrato, importe a planilha do banco ou simule um financiamento.{% endif %}</p>
   </div>
+  {% if itens %}
   <div class="acoes">
     <a class="btn btn-sec" href="{{ url_for('importar') }}">{{ icone('subir', 16) }} Importar planilha</a>
-    <a class="btn" href="{{ url_for('simulador') }}">{{ icone('mais', 16) }} Nova simulação</a>
+    <a class="btn btn-sec" href="{{ url_for('simulador') }}">{{ icone('troca', 16) }} Nova simulação</a>
+    <a class="btn" href="{{ url_for('cadastrar') }}">{{ icone('mais', 16) }} Cadastrar contrato</a>
   </div>
+  {% endif %}
 </div>
 
 {% if itens %}
@@ -19,7 +22,7 @@
   <a class="cartao contrato {% if g.fin_nav and g.fin_nav.id == f.id %}atual{% endif %}" href="{{ url_for('visao_geral', fid=f.id) }}">
     <div class="cartao-cab">
       <div><h2>{{ f.nome }}</h2>
-        <p class="muted">{{ f.instituicao or ('Planilha importada' if f.origem == 'importado' else 'Simulação') }}{% if f.numero_contrato %} • Contrato {{ f.numero_contrato }}{% endif %}</p></div>
+        <p class="muted">{{ f.instituicao or {'importado': 'Planilha importada', 'manual': 'Cadastro manual'}.get(f.origem, 'Simulação') }}{% if f.numero_contrato %} • Contrato {{ f.numero_contrato }}{% endif %}</p></div>
       <span class="pilula prevista">{{ 'SAC' if f.sistema == 'SAC' else 'Price' }}</span>
     </div>
     <dl class="ficha ficha-2">
@@ -32,14 +35,24 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="grade-2">
-  <a class="cartao contrato" href="{{ url_for('simulador') }}">
-    <h2>{{ icone('troca') }} Simular um financiamento</h2>
-    <p class="muted">Informe valor, taxa e prazo, compare SAC e Price e salve o que for melhor para você.</p>
+<div class="grade-3">
+  <a class="cartao contrato opcao" href="{{ url_for('cadastrar') }}">
+    <span class="opcao-ico">{{ icone('lista', 22) }}</span>
+    <h2>Digitar dados do contrato</h2>
+    <p class="muted">Já tem um financiamento? Informe valor, taxa, prazo e parcelas pagas que estão no contrato ou no extrato.</p>
+    <span class="link-forte">Cadastrar {{ icone('seta', 14) }}</span>
   </a>
-  <a class="cartao contrato" href="{{ url_for('importar') }}">
-    <h2>{{ icone('subir') }} Importar planilha do banco</h2>
+  <a class="cartao contrato opcao" href="{{ url_for('importar') }}">
+    <span class="opcao-ico">{{ icone('subir', 22) }}</span>
+    <h2>Importar planilha do banco</h2>
     <p class="muted">Envie a evolução do financiamento (.xlsx ou .csv). Taxa e sistema são detectados automaticamente.</p>
+    <span class="link-forte">Importar {{ icone('seta', 14) }}</span>
+  </a>
+  <a class="cartao contrato opcao" href="{{ url_for('simulador') }}">
+    <span class="opcao-ico">{{ icone('troca', 22) }}</span>
+    <h2>Simular um financiamento</h2>
+    <p class="muted">Ainda vai contratar? Compare SAC e Price e salve o cenário que for melhor para você.</p>
+    <span class="link-forte">Simular {{ icone('seta', 14) }}</span>
   </a>
 </div>
 {% endif %}

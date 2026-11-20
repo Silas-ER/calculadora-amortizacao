@@ -24,9 +24,9 @@
     <div><dt>Valor financiado</dt><dd>{{ fin.valor_financiado|brl }}</dd></div>
     <div><dt>Taxa</dt><dd>{{ fin.taxa_mensal|pct(4) }} a.m.</dd></div>
     <div><dt>Sistema</dt><dd>{{ 'SAC' if fin.sistema == 'SAC' else 'Price' }}</dd></div>
-    <div><dt>Origem</dt><dd>{{ 'Planilha importada' if fin.origem == 'importado' else 'Simulação' }}</dd></div>
+    <div><dt>Origem</dt><dd>{{ {'importado': 'Planilha importada', 'manual': 'Cadastro manual'}.get(fin.origem, 'Simulação') }}</dd></div>
   </dl>
-  <p class="muted">Valor, taxa e sistema definem toda a tabela de parcelas. Para mudá-los, crie uma nova simulação.</p>
+  <p class="muted">Valor, taxa e sistema definem toda a tabela de parcelas. Para mudá-los, <a href="{{ url_for('cadastrar') }}">cadastre o contrato novamente</a>.</p>
   <div class="acoes">
     <button class="btn">Salvar alterações</button>
     <a class="btn btn-sec" href="{{ url_for('visao_geral', fid=fin.id) }}">Cancelar</a>

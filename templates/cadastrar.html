@@ -1,0 +1,81 @@
+{% extends "app.html" %}
+{% from "_icones.html" import icone %}
+{% block content %}
+<div class="pagina-cab">
+  <div>
+    <p class="sobretitulo">Cadastrar contrato</p>
+    <h1>Seu contrato, do seu jeito.</h1>
+    <p class="subtitulo">Digite os dados do contrato. Estão no contrato assinado ou no extrato do banco.</p>
+  </div>
+  <a class="btn btn-sec" href="{{ url_for('importar') }}">{{ icone('subir', 16) }} Prefiro importar planilha</a>
+</div>
+
+<form method="post" class="form-cadastro">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <section class="cartao">
+    <div class="cartao-cab com-linha">
+      <div><h2>Identificação</h2><p class="muted">Como você quer reconhecer este contrato.</p></div>
+    </div>
+    <div class="campos-3">
+      <label class="campo">Imóvel <input name="nome" value="{{ form.nome }}" maxlength="100" placeholder="Ex.: Apartamento Vila Mariana" required></label>
+      <label class="campo">Instituição <small class="muted inline-small">(opcional)</small>
+        <input name="instituicao" value="{{ form.instituicao }}" maxlength="100" placeholder="Ex.: Caixa Econômica Federal"></label>
+      <label class="campo">Número do contrato <small class="muted inline-small">(opcional)</small>
+        <input name="numero_contrato" value="{{ form.numero_contrato }}" maxlength="40" placeholder="Ex.: 0842"></label>
+    </div>
+  </section>
+
+  <section class="cartao">
+    <div class="cartao-cab com-linha">
+      <div><h2>Condições do financiamento</h2><p class="muted">Valores do momento da contratação.</p></div>
+    </div>
+    <div class="campos-3">
+      <label class="campo">Valor financiado
+        <span class="com-prefixo"><i>R$</i><input name="valor" value="{{ form.valor }}" inputmode="decimal" placeholder="360.000,00" required></span></label>
+      <label class="campo">Taxa de juros
+        <span class="com-sufixo"><input name="taxa" value="{{ form.taxa }}" inputmode="decimal" placeholder="9,38" required>
+          <select name="tipo_taxa" aria-label="Período da taxa">
+            <option value="anual" {% if form.tipo_taxa == 'anual' %}selected{% endif %}>% a.a.</option>
+            <option value="mensal" {% if form.tipo_taxa == 'mensal' %}selected{% endif %}>% a.m.</option>
+          </select></span></label>
+      <label class="campo">Prazo total
+        <span class="com-sufixo"><input name="prazo" value="{{ form.prazo }}" inputmode="numeric" placeholder="360" required><i>meses</i></span></label>
+      <fieldset class="campo">
+        <legend>Sistema de amortização</legend>
+        <div class="segmentado">
+          <label><input type="radio" name="sistema" value="SAC" {% if form.sistema != 'PRICE' %}checked{% endif %}><span>SAC</span></label>
+          <label><input type="radio" name="sistema" value="PRICE" {% if form.sistema == 'PRICE' %}checked{% endif %}><span>Price</span></label>
+        </div>
+      </fieldset>
+      <label class="campo">Data da 1ª parcela <input type="date" name="data_primeira" value="{{ form.data_primeira }}" required></label>
+      <label class="campo">Seguros e taxas mensais
+        <span class="com-prefixo"><i>R$</i><input name="encargos" value="{{ form.encargos }}" inputmode="decimal"></span></label>
+    </div>
+  </section>
+
+  <section class="cartao">
+    <div class="cartao-cab com-linha">
+      <div><h2>Situação atual</h2><p class="muted">Para o saldo e as simulações partirem de onde você está hoje.</p></div>
+    </div>
+    <div class="campos-3">
+      <label class="campo">Parcelas já pagas
+        <span class="com-sufixo"><input name="parcelas_pagas" value="{{ form.parcelas_pagas }}" inputmode="numeric"><i>parcelas</i></span></label>
+      <label class="campo">Saldo devedor atual <small class="muted inline-small">(opcional)</small>
+        <span class="com-prefixo"><i>R$</i><input name="saldo_atual" value="{{ form.saldo_atual }}" inputmode="decimal" placeholder="Do extrato do banco"></span></label>
+      <label class="campo">Parcelas restantes <small class="muted inline-small">(opcional)</small>
+        <span class="com-sufixo"><input name="prazo_restante" value="{{ form.prazo_restante }}" inputmode="numeric" placeholder="Do extrato"><i>meses</i></span></label>
+    </div>
+    <div class="nota-faixa sem-margem-baixo">
+      <strong class="nota-rot">Por que informar o saldo?</strong>
+      Se o seu contrato teve correção pela TR ou amortizações antes de usar o habita, o saldo do extrato é mais preciso que o calculado.
+      Deixe em branco para calcular pelas condições originais.
+    </div>
+  </section>
+
+  <div class="acoes">
+    <button class="btn">Cadastrar contrato {{ icone('seta', 16) }}</button>
+    <a class="btn btn-sec" href="{{ url_for('contratos') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

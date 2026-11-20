@@ -500,6 +500,65 @@ def simulador():
     return render_template("simulador.html", form=form, comp=comp, pagina="Comparar SAC e Price")
 
 
+@app.route("/financiamentos/cadastrar", methods=["GET", "POST"])
+@login_required
+def cadastrar():
+    campos = ("nome", "instituicao", "numero_contrato", "valor", "taxa", "tipo_taxa", "prazo", "sistema",
+              "data_primeira", "encargos", "parcelas_pagas", "saldo_atual", "prazo_restante")
+    form = {k: "" for k in campos}
+    form.update({"tipo_taxa": "anual", "sistema": "SAC", "encargos": "0", "parcelas_pagas": "0"})
+    if request.method == "POST":
+        form.update({k: request.form.get(k, "").strip() for k in campos})
+        valor, taxa, prazo = num("valor"), num("taxa"), num("prazo")
+        encargos, pagas = num("encargos", 0.0), num("parcelas_pagas", 0)
+        saldo_atual, prazo_rest = num("saldo_atual"), num("prazo_restante")
+        erro = None
+        if not form["nome"]:
+            erro = "Dê um nome ao imóvel."
+        elif not valor or valor <= 0:
+            erro = "Informe o valor financiado."
+        elif taxa is None or taxa < 0 or taxa > 100:
+            erro = "Informe a taxa de juros."
+        elif not prazo or prazo < 1 or prazo > 600 or prazo != int(prazo):
+            erro = "Informe um prazo entre 1 e 600 meses."
+        elif form["sistema"] not in ("SAC", "PRICE"):
+            erro = "Escolha SAC ou Price."
+        elif encargos < 0:
+            erro = "Seguros e taxas não podem ser negativos."
+        elif pagas < 0 or pagas != int(pagas) or pagas > prazo:
+            erro = "Parcelas pagas deve ser um número entre 0 e o prazo."
+        elif saldo_atual is not None and (saldo_atual <= 0 or pagas < 1):
+            erro = "Para ajustar pelo extrato, informe o saldo devedor atual e quantas parcelas já foram pagas."
+        elif prazo_rest is not None and (saldo_atual is None or prazo_rest < 1 or prazo_rest > 600 or prazo_rest != int(prazo_rest)):
+            erro = "Parcelas restantes só valem junto com o saldo devedor atual (entre 1 e 600)."
+        try:
+            data_primeira = date.fromisoformat(form["data_primeira"])
+        except ValueError:
+            erro = erro or "Informe a data da 1ª parcela."
+        if erro:
+            flash(erro, "erro")
+        else:
+            prazo, pagas = int(prazo), int(pagas)
+            i = fz.anual_para_mensal(taxa / 100) if form["tipo_taxa"] == "anual" else taxa / 100
+            linhas = fz.gerar_tabela(valor, i, prazo, form["sistema"], data_primeira, encargos)
+            if saldo_atual is not None:
+                restantes = int(prazo_rest) if prazo_rest else prazo - pagas
+                linhas = linhas[:pagas] + fz.gerar_tabela(saldo_atual, i, restantes, form["sistema"],
+                                                          fz.add_months(data_primeira, pagas), encargos, pagas + 1)
+            db = get_db()
+            cur = db.execute(
+                "INSERT INTO financiamentos (usuario_id, nome, instituicao, numero_contrato, valor_financiado, taxa_mensal, "
+                "taxa_anual, prazo_meses, prazo_original, sistema, encargos_mensais, data_primeira, parcelas_pagas, origem) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?, 'manual')",
+                (g.user["id"], form["nome"][:100], form["instituicao"][:100], form["numero_contrato"][:40], valor, i,
+                 fz.mensal_para_anual(i), len(linhas), prazo, form["sistema"], encargos, data_primeira.isoformat(), pagas))
+            salvar_parcelas(db, cur.lastrowid, linhas)
+            db.commit()
+            flash("Contrato cadastrado.", "ok")
+            return redirect(url_for("visao_geral", fid=cur.lastrowid))
+    return render_template("cadastrar.html", form=form, pagina="Cadastrar contrato")
+
+
 @app.route("/financiamentos/<int:fid>")
 @login_required
 def visao_geral(fid):

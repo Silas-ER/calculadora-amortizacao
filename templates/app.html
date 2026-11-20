@@ -17,6 +17,7 @@
     {% else %}
     <a href="{{ url_for('contratos') }}" {% if pagina == 'Meus contratos' %}class="ativo"{% endif %}>{{ icone('pasta') }} Meus contratos</a>
     <a href="{{ url_for('simulador') }}" {% if pagina == 'Comparar SAC e Price' %}class="ativo"{% endif %}>{{ icone('troca') }} Comparar SAC e Price</a>
+    <a href="{{ url_for('cadastrar') }}" {% if pagina == 'Cadastrar contrato' %}class="ativo"{% endif %}>{{ icone('lista') }} Cadastrar contrato</a>
     <a href="{{ url_for('importar') }}" {% if pagina == 'Importar planilha' %}class="ativo"{% endif %}>{{ icone('subir') }} Importar planilha</a>
     {% endif %}
   </nav>
