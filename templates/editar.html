@@ -20,6 +20,7 @@
     <span class="com-sufixo"><input name="parcelas_pagas" value="{{ request.form.parcelas_pagas or fin.parcelas_pagas }}" data-mascara="inteiro" required><i>de {{ maximo }}</i></span>
     {% if minimo %}<small class="muted">Mínimo {{ minimo }}, pois há amortização registrada após essa parcela.</small>{% endif %}
   </label>
+  {% with indexador = request.form.indexador or fin.indexador, projecao = request.form.projecao_tr or fin.projecao_tr %}{% include "_campos_tr.html" %}{% endwith %}
   <dl class="ficha ficha-2 ficha-leve">
     <div><dt>Valor financiado</dt><dd>{{ fin.valor_financiado|brl }}</dd></div>
     <div><dt>Taxa</dt><dd>{{ fin.taxa_mensal|pct(4) }} a.m.</dd></div>

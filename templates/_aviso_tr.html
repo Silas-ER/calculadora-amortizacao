@@ -1,0 +1,3 @@
+{% if est.tr and est.tr.erro %}
+<div class="alerta erro" role="status">{{ est.tr.erro }}. Usando a TR salva{% if est.tr.ultima %} até {{ est.tr.ultima|data_longa }}{% endif %}; tentaremos de novo em alguns minutos.</div>
+{% endif %}

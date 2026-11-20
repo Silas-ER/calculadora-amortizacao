@@ -47,31 +47,42 @@ def pmt(saldo: float, i: float, n: int) -> float:
 
 # ---------------------------------------------------------------- tabelas
 
-def gerar_tabela(saldo, i, n, sistema, data_primeira, encargos=0.0, numero_inicial=1):
+def gerar_tabela(saldo, i, n, sistema, data_primeira, encargos=0.0, numero_inicial=1, correcoes=None):
     """Gera a evolução do financiamento.
 
-    Cada linha: numero, data_vencimento, amortizacao, juros, encargos,
+    correcoes: TR (fração) de cada mês. Antes de cada parcela o saldo é atualizado pela TR,
+    os juros incidem sobre o saldo atualizado e a parcela é recalculada pelo prazo restante
+    (Price: nova prestação; SAC: saldo / meses restantes) — como nos contratos do SFH.
+    Sem correção, o resultado é idêntico às tabelas SAC e Price tradicionais.
+
+    Cada linha: numero, data_vencimento, correcao, amortizacao, juros, encargos,
     valor_parcela (amortização + juros + encargos) e saldo_devedor (após o pagamento).
     """
     linhas = []
+    saldo = round(saldo, 2)
     if n <= 0 or saldo <= 0:
         return linhas
-    parcela_price = pmt(saldo, i, n)
-    amort_sac = saldo / n
+    encargos = round(encargos, 2)
     for k in range(n):
-        juros = saldo * i
-        amort = (parcela_price - juros) if sistema == "PRICE" else amort_sac
-        if k == n - 1:
-            amort = saldo  # zera resíduos de arredondamento
-        saldo -= amort
+        # tudo em centavos, mês a mês (como o banco): saldo anterior + correção − amortização = saldo
+        tr = correcoes[k] if correcoes and k < len(correcoes) else 0.0
+        correcao = round(saldo * tr, 2)
+        saldo = round(saldo + correcao, 2)
+        restantes = n - k
+        juros = round(saldo * i, 2)
+        amort = round((pmt(saldo, i, restantes) - juros) if sistema == "PRICE" else saldo / restantes, 2)
+        if k == n - 1 or amort > saldo:
+            amort = saldo  # última parcela zera o saldo
+        saldo = round(saldo - amort, 2)
         linhas.append({
             "numero": numero_inicial + k,
             "data_vencimento": add_months(data_primeira, k).isoformat(),
-            "amortizacao": round(amort, 2),
-            "juros": round(juros, 2),
-            "encargos": round(encargos, 2),
+            "correcao": correcao,
+            "amortizacao": amort,
+            "juros": juros,
+            "encargos": encargos,
             "valor_parcela": round(amort + juros + encargos, 2),
-            "saldo_devedor": round(max(saldo, 0.0), 2),
+            "saldo_devedor": saldo,
         })
     return linhas
 
@@ -80,6 +91,7 @@ def totais(linhas):
     return {
         "juros": sum(l["juros"] for l in linhas),
         "encargos": sum(l["encargos"] for l in linhas),
+        "correcao": sum(l.get("correcao", 0) for l in linhas),
         "amortizacao": sum(l["amortizacao"] for l in linhas),
         "total": sum(l["valor_parcela"] for l in linhas),
         "meses": len(linhas),
@@ -125,13 +137,14 @@ def _prazo_mantendo_parcela(ctx, novo_saldo):
 
 def tabela_base(ctx):
     return gerar_tabela(ctx["saldo"], ctx["i"], ctx["n_rest"], ctx["sistema"],
-                        ctx["data_prox"], ctx["encargos"], ctx["num_ini"])
+                        ctx["data_prox"], ctx["encargos"], ctx["num_ini"], ctx.get("correcoes"))
 
 
 def simular_amortizacao(ctx, valor, modalidade):
     """Compara o cenário atual com uma amortização extra.
 
-    ctx: saldo, i, n_rest, sistema, encargos, data_prox, num_ini
+    ctx: saldo (após a última parcela paga), i, n_rest, sistema, encargos, data_prox, num_ini,
+         correcoes (TR de cada mês restante, opcional)
     modalidade: 'prazo' (mantém parcela, reduz prazo) ou 'parcela' (mantém prazo, reduz parcela)
     """
     base = tabela_base(ctx)
@@ -143,7 +156,7 @@ def simular_amortizacao(ctx, valor, modalidade):
         quitacao = False
         meses = _prazo_mantendo_parcela(ctx, novo_saldo) if modalidade == "prazo" else ctx["n_rest"]
         nova = gerar_tabela(novo_saldo, ctx["i"], meses, ctx["sistema"], ctx["data_prox"],
-                            ctx["encargos"], ctx["num_ini"])
+                            ctx["encargos"], ctx["num_ini"], ctx.get("correcoes"))
     tb, tn = totais(base), totais(nova)
     economia = tb["total"] - tn["total"] - valor
     return {

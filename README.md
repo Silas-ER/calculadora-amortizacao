@@ -22,6 +22,13 @@ Abra http://127.0.0.1:5000, crie uma conta e comece.
 - Simulação de amortização reduzindo prazo ou parcela, e registro da amortização (recalcula a tabela)
 - Importação de planilha .xlsx/.csv (detecta taxa e sistema automaticamente) e exportação CSV
 
+## TR (atualização monetária)
+
+Contratos marcados com indexador **TR** têm o saldo corrigido mês a mês pela TR do aniversário do contrato.
+A TR vem da API pública do Banco Central (SGS, série 226), consultada no máximo uma vez por dia e guardada
+no SQLite (`indice_tr`). Meses ainda não publicados usam a média dos últimos 12 meses ou TR zero.
+Sem internet, o app usa os valores salvos e mostra um aviso.
+
 ## Estrutura
 
 | Arquivo | Conteúdo |
@@ -29,6 +36,7 @@ Abra http://127.0.0.1:5000, crie uma conta e comece.
 | `app.py` | rotas, login, sessão |
 | `finance.py` | cálculos SAC/PRICE, simulação, recomendação |
 | `importer.py` | leitura de planilhas |
+| `indices.py` | TR do Banco Central (download, cache e projeção) |
 | `db.py` | esquema, conexão SQLite e migração de bancos antigos |
 | `templates/` | `app.html` (menu lateral + topo), `auth.html` (login/cadastro) e uma página por tela |
 | `static/` | `style.css` (tokens de tema claro/escuro do Figma), `app.js`, `grafico.js` |

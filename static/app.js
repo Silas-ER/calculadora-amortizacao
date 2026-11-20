@@ -101,6 +101,17 @@
     }
   });
 
+  // projeção da TR só faz sentido com indexador TR
+  document.querySelectorAll('[data-so-tr]').forEach((campo) => {
+    const form = campo.closest('form');
+    const atualizar = () => {
+      const tr = form.querySelector('[data-indexador]:checked')?.value === 'TR';
+      campo.hidden = !tr;
+    };
+    form.querySelectorAll('[data-indexador]').forEach((r) => r.addEventListener('change', atualizar));
+    atualizar();
+  });
+
   // envia a foto de perfil assim que for escolhida
   document.querySelectorAll('[data-foto-input]').forEach((i) => i.addEventListener('change', () => {
     if (i.files[0]) i.closest('form').submit();

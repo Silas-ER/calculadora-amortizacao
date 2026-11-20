@@ -124,6 +124,6 @@
 </section>
 
 <footer class="rodape-pagina">
-  <span>Simulação ilustrativa em {{ 'SAC' if fin.sistema == 'SAC' else 'Price' }}, com taxa fixa. Não inclui TR ou atualização monetária.</span>
+  <span>Simulação ilustrativa em {{ 'SAC' if fin.sistema == 'SAC' else 'Price' }}, com taxa fixa.{% if est.tr %} Saldo corrigido pela TR, com projeção para os meses ainda não publicados.{% else %} Não inclui TR ou atualização monetária.{% endif %}</span>
 </footer>
 {% endblock %}

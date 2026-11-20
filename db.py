@@ -30,6 +30,9 @@ CREATE TABLE IF NOT EXISTS financiamentos (
     data_primeira    TEXT NOT NULL,
     parcelas_pagas   INTEGER NOT NULL DEFAULT 0,
     origem           TEXT NOT NULL DEFAULT 'calculado',
+    indexador        TEXT NOT NULL DEFAULT 'nenhum',   -- 'nenhum' ou 'TR'
+    projecao_tr      TEXT NOT NULL DEFAULT 'media12',  -- TR futura: 'media12' ou 'zero'
+    tr_assinatura    TEXT NOT NULL DEFAULT '',         -- controla quando recalcular as parcelas
     criado_em        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -42,8 +45,20 @@ CREATE TABLE IF NOT EXISTS parcelas (
     amortizacao      REAL NOT NULL,
     juros            REAL NOT NULL,
     encargos         REAL NOT NULL DEFAULT 0,
+    correcao         REAL NOT NULL DEFAULT 0,          -- atualização monetária (TR) somada ao saldo no mês
     saldo_devedor    REAL NOT NULL,
     UNIQUE (financiamento_id, numero)
+);
+
+-- TR (Banco Central, série SGS 226): valor em % para o período que começa em `data`
+CREATE TABLE IF NOT EXISTS indice_tr (
+    data  TEXT PRIMARY KEY,
+    valor REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS meta (
+    chave TEXT PRIMARY KEY,
+    valor TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS amortizacoes (
@@ -109,6 +124,12 @@ def _migrar(db):
     for col in ("instituicao", "numero_contrato"):
         if col not in cols:
             db.execute(f"ALTER TABLE financiamentos ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
+    for col, padrao in (("indexador", "nenhum"), ("projecao_tr", "media12"), ("tr_assinatura", "")):
+        if col not in cols:
+            db.execute(f"ALTER TABLE financiamentos ADD COLUMN {col} TEXT NOT NULL DEFAULT '{padrao}'")
+    cols_parcelas = _colunas(db, "parcelas")
+    if cols_parcelas and "correcao" not in cols_parcelas:
+        db.execute("ALTER TABLE parcelas ADD COLUMN correcao REAL NOT NULL DEFAULT 0")
     db.commit()
 
 

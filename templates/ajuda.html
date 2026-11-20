@@ -21,7 +21,9 @@
   <details class="cartao"><summary>Posso usar o FGTS?</summary>
     <p>Em financiamentos do Sistema Financeiro de Habitação (SFH), em geral sim, respeitando as regras do FGTS. Confirme as condições com o seu banco.</p></details>
   <details class="cartao"><summary>Por que os valores daqui diferem um pouco do boleto?</summary>
-    <p>As simulações usam taxa fixa e não incluem TR, IPCA ou outras correções monetárias. Para valores exatos, importe a planilha de evolução enviada pelo banco.</p></details>
+    <p>Pode ser o seguro, que muda com o saldo e a idade, ou a correção monetária. Em contratos com TR, ative "Atualização monetária: TR" em Editar contrato. O habita busca a TR no Banco Central todos os dias e projeta os meses futuros. Para acertar o ponto de partida, informe o saldo devedor do extrato no cadastro do contrato. Contratos corrigidos por IPCA ainda não são suportados.</p></details>
+  <details class="cartao"><summary>Como a TR é aplicada?</summary>
+    <p>Todo mês, no dia de aniversário do contrato, o saldo devedor é corrigido pela TR do mês anterior. Os juros incidem sobre o saldo corrigido e a parcela é recalculada pelo prazo restante: no Price a prestação muda um pouco; no SAC, a amortização. A TR vem da série 226 do Banco Central. Nos meses em que ela ainda não foi publicada, o habita usa a média dos últimos 12 meses ou TR zero, como você escolher.</p></details>
   <details class="cartao"><summary>Como importar a planilha do banco?</summary>
     <p>Na página <a href="{{ url_for('importar') }}">Importar planilha</a>, envie um arquivo .xlsx ou .csv com as colunas Juros, Amortização e Saldo devedor. Você pode baixar uma planilha modelo lá mesmo.</p></details>
 </div>

@@ -62,6 +62,13 @@
 
   <section class="cartao">
     <div class="cartao-cab com-linha">
+      <div><h2>Atualização monetária</h2><p class="muted">Contratos do SFH costumam corrigir o saldo devedor pela TR todo mês.</p></div>
+    </div>
+    {% with indexador = form.indexador, projecao = form.projecao_tr %}{% include "_campos_tr.html" %}{% endwith %}
+  </section>
+
+  <section class="cartao">
+    <div class="cartao-cab com-linha">
       <div><h2>Situação atual</h2><p class="muted">Para o saldo e as simulações partirem de onde você está hoje.</p></div>
     </div>
     <div class="campos-3">

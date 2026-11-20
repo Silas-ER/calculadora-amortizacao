@@ -27,6 +27,7 @@
 
 /* ================================================================ base */
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { color-scheme: light; }
 [data-tema="escuro"] { color-scheme: dark; }
 body { margin: 0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 15px;
@@ -250,6 +251,7 @@ fieldset .segmentado label span { min-width: 0; }
 .ficha dt { font-size: .68rem; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
 .ficha dd { margin: 0; font-size: .92rem; }
 .ficha dd small { display: block; font-size: .75rem; }
+.ficha .ficha-largo { grid-column: 1 / -1; }
 .ficha-leve { background: var(--sup-2); border-radius: 8px; padding: 16px; margin: 6px 0 14px; }
 
 /* movimentações */
@@ -280,6 +282,9 @@ fieldset .segmentado label span { min-width: 0; }
 .tabela th:first-child, .tabela td:first-child { padding-left: 24px; }
 .tabela th:last-child, .tabela td:last-child { padding-right: 24px; }
 .cartao:not(.cartao-tabela) .tabela th:first-child, .cartao:not(.cartao-tabela) .tabela td:first-child { padding-left: 12px; }
+.tabela-compacta { font-size: .82rem; }
+.tabela-compacta th, .tabela-compacta td { padding-left: 8px; padding-right: 8px; white-space: nowrap; }
+.tabela-compacta th { font-size: .62rem; }
 .tabela .n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tabela tr.st-proxima td { background: var(--linha-destaque); }
 .tabela tr.st-paga td { opacity: .6; }

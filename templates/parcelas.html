@@ -18,7 +18,12 @@
   <span class="muted">{{ SISTEMA_DESC[sistema] }} • {{ fin.taxa_mensal|pct }} a.m. • {{ resumo.total }} meses</span>
 </div>
 {% if simulado %}
-<div class="alerta info">Simulação: seu contrato é <strong>{{ 'SAC' if fin.sistema == 'SAC' else 'Price' }}</strong>. Esta tabela mostra como seria o mesmo financiamento em {{ 'SAC' if sistema == 'SAC' else 'Price' }}, sem as amortizações extras.</div>
+<div class="alerta info">Simulação: seu contrato é <strong>{{ 'SAC' if fin.sistema == 'SAC' else 'Price' }}</strong>. Esta tabela mostra como seria o mesmo financiamento em {{ 'SAC' if sistema == 'SAC' else 'Price' }}, sem as amortizações extras{% if est.tr %} e sem TR{% endif %}.</div>
+{% endif %}
+{% include "_aviso_tr.html" %}
+{% if com_tr %}
+<div class="nota-faixa"><strong class="nota-rot">TR</strong> O saldo é corrigido pela TR publicada pelo Banco Central{% if est.tr.ultima %} (última: {{ est.tr.ultima|data_longa }}){% endif %}.
+  Valores com ≈ usam a projeção: {% if fin.projecao_tr == 'zero' %}TR zero{% else %}média de 12 meses, {{ est.tr.media|pct(4) }} a.m.{% endif %}</div>
 {% endif %}
 
 <div class="cartao resumo">
@@ -45,10 +50,11 @@
     </form>
   </div>
   <div class="rolagem-x">
-  <table class="tabela">
+  <table class="tabela {% if com_tr or fin.encargos_mensais %}tabela-compacta{% endif %}">
     <thead><tr>
       <th>Parcela</th><th>Vencimento</th><th class="n">Prestação</th><th class="n">Amortização</th>
       <th class="n">Juros</th>{% if fin.encargos_mensais %}<th class="n">Seguros/taxas</th>{% endif %}
+      {% if com_tr %}<th class="n">Correção TR</th>{% endif %}
       <th class="n">Saldo devedor</th><th>Status</th>
     </tr></thead>
     <tbody>
@@ -60,11 +66,12 @@
       <td class="n muted">{{ l.amortizacao|brl }}</td>
       <td class="n muted">{{ l.juros|brl }}</td>
       {% if fin.encargos_mensais %}<td class="n muted">{{ l.encargos|brl }}</td>{% endif %}
+      {% if com_tr %}<td class="n muted" {% if l.tr_projetada %}title="TR ainda não publicada: valor projetado"{% endif %}>{% if l.tr_projetada %}≈ {% endif %}{{ l.correcao|brl }}</td>{% endif %}
       <td class="n forte">{{ l.saldo_devedor|brl }}</td>
       <td><span class="pilula {{ l.status }}">{% if l.status == 'paga' %}{{ icone('check', 12) }} Paga{% elif l.status == 'proxima' %}• Próxima{% else %}• Prevista{% endif %}</span></td>
     </tr>
     {% else %}
-    <tr><td colspan="8" class="vazio-tabela">Nenhuma parcela encontrada.</td></tr>
+    <tr><td colspan="9" class="vazio-tabela">Nenhuma parcela encontrada.</td></tr>
     {% endfor %}
     </tbody>
   </table>

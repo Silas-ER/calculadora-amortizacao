@@ -130,6 +130,6 @@
 {% endif %}
 
 <footer class="rodape-pagina">
-  <span>Recomendação educativa, baseada em taxa fixa. Não inclui TR, IPCA ou custos de transação. Confirme as condições com seu banco.</span>
+  <span>Recomendação educativa, baseada em taxa fixa.{% if est.tr %} O custo da dívida inclui a TR projetada.{% else %} Não inclui TR ou IPCA.{% endif %} Não considera custos de transação. Confirme as condições com seu banco.</span>
 </footer>
 {% endblock %}

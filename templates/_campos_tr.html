@@ -1,0 +1,18 @@
+{# Campos de atualização monetária. Espera: indexador, projecao #}
+<div class="campos-2">
+  <fieldset class="campo">
+    <legend>Atualização monetária do saldo</legend>
+    <div class="segmentado">
+      <label><input type="radio" name="indexador" value="TR" {% if indexador == 'TR' %}checked{% endif %} data-indexador><span>TR</span></label>
+      <label><input type="radio" name="indexador" value="nenhum" {% if indexador != 'TR' %}checked{% endif %} data-indexador><span>Nenhuma</span></label>
+    </div>
+  </fieldset>
+  <label class="campo" data-so-tr>TR dos próximos meses
+    <select name="projecao_tr">
+      <option value="media12" {% if projecao != 'zero' %}selected{% endif %}>Média dos últimos 12 meses</option>
+      <option value="zero" {% if projecao == 'zero' %}selected{% endif %}>Considerar TR zero</option>
+    </select>
+  </label>
+</div>
+<p class="muted dica-campo">Com TR, o habita busca a taxa no Banco Central todos os dias e corrige o saldo no aniversário do contrato.
+  Nos meses em que a TR ainda não foi publicada, usa a projeção escolhida. Confira no contrato a cláusula de "atualização monetária".</p>

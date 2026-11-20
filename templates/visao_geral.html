@@ -9,6 +9,7 @@
   </div>
   {% if est.ctx %}<a class="btn" href="{{ url_for('amortizacoes', fid=fin.id) }}">{{ icone('mais', 16) }} Nova amortização</a>{% endif %}
 </div>
+{% include "_aviso_tr.html" %}
 
 <div class="kpis">
   <div class="cartao kpi">
@@ -32,7 +33,7 @@
   <div class="cartao kpi">
     <span>Juros a pagar</span>
     <strong>{{ est.juros_restantes|brl }}</strong>
-    <small>Estimativa até o fim do contrato</small>
+    <small>{% if est.tr %}Estimativa com TR projetada{% else %}Estimativa até o fim do contrato{% endif %}</small>
   </div>
 </div>
 
@@ -92,6 +93,13 @@
       <div><dt>Sistema</dt><dd>{{ 'SAC' if fin.sistema == 'SAC' else 'Price' }} · {{ SISTEMA_DESC[fin.sistema] }}</dd></div>
       <div><dt>Prazo original</dt><dd>{{ fin.prazo_original }} meses{% if fin.prazo_original % 12 == 0 %} ({{ fin.prazo_original // 12 }} {{ 'ano' if fin.prazo_original == 12 else 'anos' }}){% endif %}
         {% if fin.prazo_meses != fin.prazo_original %}<small class="destaque-txt">agora {{ fin.prazo_meses }} meses</small>{% endif %}</dd></div>
+      <div class="ficha-largo"><dt>Atualização monetária</dt><dd>
+        {% if est.tr %}
+          TR · Banco Central{% if est.tr.ultima %} <small class="muted">última publicada: {{ est.tr.ultima|data_longa }}</small>{% endif %}
+          <small class="muted">Próximos meses: {% if fin.projecao_tr == 'zero' %}TR zero{% else %}média de 12 meses ({{ est.tr.media|pct(4) }} a.m.){% endif %}
+            {% if est.correcao_restante %} • correção prevista {{ est.correcao_restante|brl }}{% endif %}</small>
+        {% else %}Nenhuma <small class="muted"><a href="{{ url_for('editar', fid=fin.id) }}">Ativar TR</a></small>{% endif %}
+      </dd></div>
     </dl>
   </section>
 
@@ -112,7 +120,7 @@
 </div>
 
 <footer class="rodape-pagina">
-  <span>Valores estimados{% if not fin.encargos_mensais %}, sem seguros e tarifas{% endif %}, sem correção monetária.</span>
+  <span>Valores estimados{% if not fin.encargos_mensais %}, sem seguros e tarifas{% endif %}{% if est.tr %}, com saldo corrigido pela TR do Banco Central{% else %}, sem correção monetária{% endif %}.</span>
   <span>Atualizado em {{ hoje|data_longa }} • Todos os valores em reais</span>
 </footer>
 {% endblock %}

@@ -15,6 +15,7 @@ from flask import (Flask, Response, abort, flash, g, redirect, render_template,
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import finance as fz
+import indices
 from db import close_db, get_db, init_db
 from importer import ImportacaoErro, importar_planilha
 
@@ -396,10 +397,49 @@ def get_fin(fid):
     return fin
 
 
+def _ler_parcelas(db, fid):
+    return [dict(r) for r in db.execute("SELECT * FROM parcelas WHERE financiamento_id = ? ORDER BY numero", (fid,))]
+
+
+def _saldo_antes(linha):
+    """Saldo logo após a parcela anterior (antes da correção do mês e do pagamento desta linha)."""
+    return round(linha["saldo_devedor"] + linha["amortizacao"] - (linha.get("correcao") or 0), 2)
+
+
+def sincronizar_tr(db, fin, linhas):
+    """Atualiza a TR e, se houver valores novos, recalcula as parcelas ainda não pagas.
+
+    Retorna (linhas, status) — status traz a data da última TR e quantos meses usam TR publicada.
+    """
+    k = fin["parcelas_pagas"]
+    desde = fz.add_months(date.fromisoformat(fin["data_primeira"]), -1)
+    status = indices.atualizar(db, desde)
+    restantes = [l for l in linhas if l["numero"] > k]
+    tabela = indices.TabelaTR(db, desde)
+    venc = [l["data_vencimento"] for l in restantes]
+    fatores, conhecidos = tabela.fatores(venc, fin["projecao_tr"])
+    status.update({"conhecidos": conhecidos, "projetados": len(venc) - conhecidos,
+                   "media": tabela.media_12(date.fromisoformat(fin["data_primeira"]).day),
+                   "fatores": fatores})
+    assinatura = f"{status['ultima']}|{fin['projecao_tr']}|{k}|{len(linhas)}"
+    if restantes and assinatura != fin["tr_assinatura"]:
+        prox = restantes[0]
+        novas = fz.gerar_tabela(_saldo_antes(prox), fin["taxa_mensal"], len(restantes), fin["sistema"],
+                                date.fromisoformat(prox["data_vencimento"]), prox["encargos"], prox["numero"], fatores)
+        db.execute("DELETE FROM parcelas WHERE financiamento_id = ? AND numero > ?", (fin["id"], k))
+        salvar_parcelas(db, fin["id"], novas)
+        db.execute("UPDATE financiamentos SET tr_assinatura = ? WHERE id = ?", (assinatura, fin["id"]))
+        db.commit()
+        linhas = _ler_parcelas(db, fin["id"])
+    return linhas, status
+
+
 def carregar_estado(fin):
     db = get_db()
-    linhas = [dict(r) for r in db.execute(
-        "SELECT * FROM parcelas WHERE financiamento_id = ? ORDER BY numero", (fin["id"],))]
+    linhas = _ler_parcelas(db, fin["id"])
+    tr = None
+    if fin["indexador"] == "TR":
+        linhas, tr = sincronizar_tr(db, fin, linhas)
     amortizacoes = [dict(r) for r in db.execute(
         "SELECT * FROM amortizacoes WHERE financiamento_id = ? ORDER BY id DESC", (fin["id"],))]
     k = fin["parcelas_pagas"]
@@ -407,15 +447,16 @@ def carregar_estado(fin):
     pagas = [l for l in linhas if l["numero"] <= k]
     if restantes:
         prox = restantes[0]
-        saldo = prox["saldo_devedor"] + prox["amortizacao"]
+        saldo = _saldo_antes(prox)
         ctx = {"saldo": saldo, "i": fin["taxa_mensal"], "n_rest": len(restantes), "sistema": fin["sistema"],
                "encargos": prox["encargos"], "data_prox": date.fromisoformat(prox["data_vencimento"]),
-               "num_ini": prox["numero"]}
+               "num_ini": prox["numero"], "correcoes": tr["fatores"] if tr else None}
     else:
         prox, saldo, ctx = None, 0.0, None
     return {
         "linhas": linhas, "restantes": restantes, "pagas": pagas, "proxima": prox, "saldo": saldo, "ctx": ctx,
-        "amortizacoes": amortizacoes,
+        "amortizacoes": amortizacoes, "tr": tr,
+        "correcao_restante": sum(l.get("correcao", 0) for l in restantes),
         "juros_restantes": sum(l["juros"] for l in restantes),
         "total_pago": sum(l["valor_parcela"] for l in pagas) + sum(a["valor"] for a in amortizacoes),
         "economia_total": sum(a["economia"] for a in amortizacoes),
@@ -426,9 +467,9 @@ def carregar_estado(fin):
 def salvar_parcelas(db, fid, parcelas):
     db.executemany(
         "INSERT INTO parcelas (financiamento_id, numero, data_vencimento, valor_parcela, amortizacao, "
-        "juros, encargos, saldo_devedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "juros, encargos, correcao, saldo_devedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [(fid, p["numero"], p["data_vencimento"], p["valor_parcela"], p["amortizacao"], p["juros"],
-          p["encargos"], p["saldo_devedor"]) for p in parcelas])
+          p["encargos"], p.get("correcao", 0), p["saldo_devedor"]) for p in parcelas])
 
 
 def num(campo, padrao=None):
@@ -504,11 +545,12 @@ def simulador():
 @login_required
 def cadastrar():
     campos = ("nome", "instituicao", "numero_contrato", "valor", "taxa", "tipo_taxa", "prazo", "sistema",
-              "data_primeira", "encargos", "parcelas_pagas", "saldo_atual", "prazo_restante")
+              "data_primeira", "encargos", "parcelas_pagas", "saldo_atual", "prazo_restante", "indexador", "projecao_tr")
     form = {k: "" for k in campos}
-    form.update({"tipo_taxa": "anual", "sistema": "SAC", "encargos": "0", "parcelas_pagas": "0"})
+    form.update({"tipo_taxa": "anual", "sistema": "SAC", "encargos": "0", "parcelas_pagas": "0",
+                 "indexador": "TR", "projecao_tr": "media12"})
     if request.method == "POST":
-        form.update({k: request.form.get(k, "").strip() for k in campos})
+        form.update({k: request.form.get(k, form[k]).strip() for k in campos})
         valor, taxa, prazo = num("valor"), num("taxa"), num("prazo")
         encargos, pagas = num("encargos", 0.0), num("parcelas_pagas", 0)
         saldo_atual, prazo_rest = num("saldo_atual"), num("prazo_restante")
@@ -531,6 +573,8 @@ def cadastrar():
             erro = "Para ajustar pelo extrato, informe o saldo devedor atual e quantas parcelas já foram pagas."
         elif prazo_rest is not None and (saldo_atual is None or prazo_rest < 1 or prazo_rest > 600 or prazo_rest != int(prazo_rest)):
             erro = "Parcelas restantes só valem junto com o saldo devedor atual (entre 1 e 600)."
+        elif form["indexador"] not in ("nenhum", "TR") or form["projecao_tr"] not in ("media12", "zero"):
+            erro = "Escolha a atualização monetária do contrato."
         try:
             data_primeira = date.fromisoformat(form["data_primeira"])
         except ValueError:
@@ -540,21 +584,32 @@ def cadastrar():
         else:
             prazo, pagas = int(prazo), int(pagas)
             i = fz.taxa_mensal(taxa, form["tipo_taxa"])
-            linhas = fz.gerar_tabela(valor, i, prazo, form["sistema"], data_primeira, encargos)
-            if saldo_atual is not None:
-                restantes = int(prazo_rest) if prazo_rest else prazo - pagas
-                linhas = linhas[:pagas] + fz.gerar_tabela(saldo_atual, i, restantes, form["sistema"],
-                                                          fz.add_months(data_primeira, pagas), encargos, pagas + 1)
             db = get_db()
+            restantes = (int(prazo_rest) if prazo_rest else prazo - pagas) if saldo_atual is not None else prazo - pagas
+            total = pagas + restantes
+            fatores, tr_erro = None, None
+            if form["indexador"] == "TR":
+                desde = fz.add_months(data_primeira, -1)
+                tr_erro = indices.atualizar(db, desde)["erro"]
+                venc = [fz.add_months(data_primeira, m) for m in range(max(prazo, total))]
+                fatores, _ = indices.TabelaTR(db, desde).fatores(venc, form["projecao_tr"])
+            linhas = fz.gerar_tabela(valor, i, prazo, form["sistema"], data_primeira, encargos, 1, fatores)
+            if saldo_atual is not None:
+                linhas = linhas[:pagas] + fz.gerar_tabela(saldo_atual, i, restantes, form["sistema"],
+                                                          fz.add_months(data_primeira, pagas), encargos, pagas + 1,
+                                                          fatores[pagas:] if fatores else None)
             cur = db.execute(
                 "INSERT INTO financiamentos (usuario_id, nome, instituicao, numero_contrato, valor_financiado, taxa_mensal, "
-                "taxa_anual, prazo_meses, prazo_original, sistema, encargos_mensais, data_primeira, parcelas_pagas, origem) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?, 'manual')",
+                "taxa_anual, prazo_meses, prazo_original, sistema, encargos_mensais, data_primeira, parcelas_pagas, "
+                "indexador, projecao_tr, origem) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'manual')",
                 (g.user["id"], form["nome"][:100], form["instituicao"][:100], form["numero_contrato"][:40], valor, i,
-                 fz.mensal_para_anual(i), len(linhas), prazo, form["sistema"], encargos, data_primeira.isoformat(), pagas))
+                 fz.mensal_para_anual(i), len(linhas), prazo, form["sistema"], encargos, data_primeira.isoformat(), pagas,
+                 form["indexador"], form["projecao_tr"]))
             salvar_parcelas(db, cur.lastrowid, linhas)
             db.commit()
             flash("Contrato cadastrado.", "ok")
+            if tr_erro:
+                flash(f"{tr_erro}. As parcelas usam a TR projetada e serão atualizadas na próxima consulta.", "erro")
             return redirect(url_for("visao_geral", fid=cur.lastrowid))
     return render_template("cadastrar.html", form=form, pagina="Cadastrar contrato")
 
@@ -601,8 +656,11 @@ def parcelas(fid):
         linhas = est["linhas"]
         extras = sum(a["valor"] for a in est["amortizacoes"])
     k = fin["parcelas_pagas"]
+    com_tr = bool(est["tr"]) and not simulado
+    conhecidos = est["tr"]["conhecidos"] if com_tr else 0
     for l in linhas:
         l["status"] = "paga" if l["numero"] <= k else ("proxima" if l["numero"] == k + 1 else "prevista")
+        l["tr_projetada"] = com_tr and l["numero"] > k + conhecidos
 
     resumo = {"financiado": fin["valor_financiado"], "juros": sum(l["juros"] for l in linhas),
               "custo": sum(l["valor_parcela"] for l in linhas) + extras, "pagas": min(k, len(linhas)),
@@ -623,7 +681,8 @@ def parcelas(fid):
     ini = (pagina - 1) * POR_PAGINA
     return render_template("parcelas.html", fin=fin, est=est, sistema=sistema, simulado=simulado, resumo=resumo,
                            linhas=filtradas[ini:ini + POR_PAGINA], ini=ini, n_filtradas=len(filtradas),
-                           pag=pagina, total_pag=total_pag, status=status, q=q, pagina="Planilha de parcelas")
+                           pag=pagina, total_pag=total_pag, status=status, q=q, com_tr=com_tr,
+                           pagina="Planilha de parcelas")
 
 
 @app.route("/financiamentos/<int:fid>/amortizacoes", methods=["GET", "POST"])
@@ -719,14 +778,28 @@ def editar(fid):
     if request.method == "POST":
         nome = request.form.get("nome", "").strip()[:100]
         n = num("parcelas_pagas")
+        indexador = request.form.get("indexador", fin["indexador"])
+        projecao = request.form.get("projecao_tr", fin["projecao_tr"])
         if not nome:
             flash("Informe o nome do imóvel.", "erro")
         elif n is None or n != int(n) or not (minimo <= n <= maximo):
             flash(f"Parcelas pagas deve ser um número entre {minimo} e {maximo}.", "erro")
+        elif indexador not in ("nenhum", "TR") or projecao not in ("media12", "zero"):
+            flash("Escolha a atualização monetária do contrato.", "erro")
         else:
-            db.execute("UPDATE financiamentos SET nome = ?, instituicao = ?, numero_contrato = ?, parcelas_pagas = ? "
-                       "WHERE id = ?", (nome, request.form.get("instituicao", "").strip()[:100],
-                                        request.form.get("numero_contrato", "").strip()[:40], int(n), fid))
+            db.execute("UPDATE financiamentos SET nome = ?, instituicao = ?, numero_contrato = ?, parcelas_pagas = ?, "
+                       "indexador = ?, projecao_tr = ?, tr_assinatura = '' WHERE id = ?",
+                       (nome, request.form.get("instituicao", "").strip()[:100],
+                        request.form.get("numero_contrato", "").strip()[:40], int(n), indexador, projecao, fid))
+            if indexador == "nenhum" and fin["indexador"] == "TR":
+                # sem TR: recalcula as parcelas ainda não pagas sem correção
+                restantes = [l for l in _ler_parcelas(db, fid) if l["numero"] > int(n)]
+                if restantes:
+                    prox = restantes[0]
+                    novas = fz.gerar_tabela(_saldo_antes(prox), fin["taxa_mensal"], len(restantes), fin["sistema"],
+                                            date.fromisoformat(prox["data_vencimento"]), prox["encargos"], prox["numero"])
+                    db.execute("DELETE FROM parcelas WHERE financiamento_id = ? AND numero > ?", (fid, int(n)))
+                    salvar_parcelas(db, fid, novas)
             db.commit()
             flash("Contrato atualizado.", "ok")
             return redirect(url_for("visao_geral", fid=fid))
@@ -807,8 +880,9 @@ def exportar(fid):
     fin = get_fin(fid)
     est = carregar_estado(fin)
     linhas = [[l["numero"], "/".join(reversed(l["data_vencimento"].split("-"))), l["valor_parcela"],
-               l["amortizacao"], l["juros"], l["encargos"], l["saldo_devedor"]] for l in est["linhas"]]
-    return Response(_csv_br(CABECALHO, linhas), mimetype="text/csv",
+               l["amortizacao"], l["juros"], l["encargos"], l["saldo_devedor"], float(l.get("correcao") or 0)]
+              for l in est["linhas"]]
+    return Response(_csv_br(CABECALHO + ["Correcao TR"], linhas), mimetype="text/csv",
                     headers={"Content-Disposition": f"attachment; filename=financiamento_{fid}.csv"})
 
 
