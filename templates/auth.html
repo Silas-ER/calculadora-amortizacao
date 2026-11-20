@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+{% block body_class %}layout-auth{% endblock %}
+{% block body %}
+<div class="auth-pagina">
+  <header class="auth-topo">{% block topo %}{% endblock %}</header>
+  <main class="auth-main">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in msgs %}<div class="alerta {{ cat }}" role="status">{{ msg }}</div>{% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="auth-rodape">
+    <span>© 2026 habita</span>
+    <span>Privacidade <i>•</i> Termos de uso</span>
+  </footer>
+</div>
+{% endblock %}

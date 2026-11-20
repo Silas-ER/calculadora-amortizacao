@@ -1,0 +1,69 @@
+{% extends "app.html" %}
+{% from "_icones.html" import icone %}
+{% block content %}
+<div class="pagina-cab">
+  <div>
+    <p class="sobretitulo">Comparar SAC e Price</p>
+    <h1>Dois caminhos, uma escolha consciente.</h1>
+    <p class="subtitulo">Compare os dois sistemas lado a lado e salve como um novo contrato.</p>
+  </div>
+</div>
+
+<form method="post" class="cartao" action="{{ url_for('simulador') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="campos-4">
+    <label class="campo">Valor financiado
+      <span class="com-prefixo"><i>R$</i><input name="valor" value="{{ form.valor }}" inputmode="decimal" placeholder="300.000,00" required></span></label>
+    <label class="campo">Taxa de juros
+      <span class="com-sufixo"><input name="taxa" value="{{ form.taxa }}" inputmode="decimal" placeholder="10,5" required>
+        <select name="tipo_taxa" aria-label="Período da taxa">
+          <option value="anual" {% if form.tipo_taxa == 'anual' %}selected{% endif %}>% a.a.</option>
+          <option value="mensal" {% if form.tipo_taxa == 'mensal' %}selected{% endif %}>% a.m.</option>
+        </select></span></label>
+    <label class="campo">Prazo
+      <span class="com-sufixo"><input name="prazo" value="{{ form.prazo }}" inputmode="numeric" placeholder="360" required><i>meses</i></span></label>
+    <label class="campo">Seguros e taxas mensais
+      <span class="com-prefixo"><i>R$</i><input name="encargos" value="{{ form.encargos }}" inputmode="decimal"></span></label>
+    <label class="campo">Data da 1ª parcela <input type="date" name="data_primeira" value="{{ form.data_primeira }}" required></label>
+    <label class="campo">Nome do imóvel <input name="nome" value="{{ form.nome }}" placeholder="Opcional"></label>
+    <label class="campo">Instituição <input name="instituicao" value="{{ form.instituicao }}" placeholder="Opcional"></label>
+    <div class="campo campo-botao"><button class="btn btn-largo" name="acao" value="comparar">Comparar {{ icone('seta', 16) }}</button></div>
+  </div>
+
+  {% if comp %}
+  <p class="muted mt">Taxa efetiva: {{ comp.i|pct(4) }} a.m. · {{ comp.anual|pct }} a.a.</p>
+  <div class="grade-2">
+    {% for s in ('SAC', 'PRICE') %}{% set t = comp.totais[s] %}
+    <div class="cartao comparativo {% if t.juros == [comp.totais.SAC.juros, comp.totais.PRICE.juros]|min %}menor{% endif %}">
+      <div class="cartao-cab"><h2>{{ 'SAC' if s == 'SAC' else 'Price' }}</h2><span class="muted">{{ SISTEMA_DESC[s] }}</span></div>
+      <dl class="ficha ficha-2">
+        <div><dt>1ª parcela</dt><dd>{{ t.primeira|brl }}</dd></div>
+        <div><dt>Última parcela</dt><dd>{{ t.ultima|brl }}</dd></div>
+        <div><dt>Total de juros</dt><dd>{{ t.juros|brl }}</dd></div>
+        <div><dt>Custo total</dt><dd>{{ t.total|brl }}</dd></div>
+      </dl>
+      <button class="btn btn-sec" name="acao" value="salvar_{{ s }}">Salvar como contrato {{ 'SAC' if s == 'SAC' else 'Price' }}</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% set dj = comp.totais.PRICE.juros - comp.totais.SAC.juros %}
+  {% set dp = comp.totais.SAC.primeira - comp.totais.PRICE.primeira %}
+  <div class="nota-faixa">No <strong>SAC</strong> você paga <strong>{{ dj|brl }}</strong> a menos de juros, mas a 1ª parcela é
+    <strong>{{ dp|brl }}</strong> maior. A <strong>Price</strong> cabe melhor no orçamento no início; o SAC sai mais barato no total.</div>
+
+  <h3 class="mt">Primeiros 12 meses</h3>
+  <div class="rolagem-x">
+  <table class="tabela">
+    <thead><tr><th>Parcela</th><th>Vencimento</th><th class="n">SAC</th><th class="n">Price</th><th class="n">Diferença</th></tr></thead>
+    <tbody>
+    {% for a in comp.tabelas.SAC[:12] %}{% set b = comp.tabelas.PRICE[loop.index0] %}
+    <tr><td class="forte">{{ '%03d'|format(a.numero) }}</td><td class="muted">{{ a.data_vencimento|data_longa }}</td>
+      <td class="n">{{ a.valor_parcela|brl }}</td><td class="n">{{ b.valor_parcela|brl }}</td>
+      <td class="n muted">{{ (a.valor_parcela - b.valor_parcela)|brl }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</form>
+{% endblock %}

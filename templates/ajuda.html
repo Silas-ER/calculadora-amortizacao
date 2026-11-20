@@ -1,0 +1,28 @@
+{% extends "app.html" %}
+{% from "_icones.html" import icone %}
+{% block content %}
+<div class="pagina-cab">
+  <div>
+    <p class="sobretitulo">Central de ajuda</p>
+    <h1>Dúvidas comuns, respostas diretas.</h1>
+    <p class="subtitulo">Entenda os números do seu financiamento.</p>
+  </div>
+</div>
+
+<div class="faq">
+  <details class="cartao" open><summary>Qual a diferença entre SAC e Price?</summary>
+    <p>No <strong>SAC</strong> a amortização é constante e os juros caem a cada mês, então as parcelas diminuem. Você paga menos juros no total, mas começa com parcelas maiores. Na <strong>Price</strong> a prestação é fixa: no início ela é quase toda juros. Cabe melhor no orçamento no começo, mas custa mais no total.</p></details>
+  <details class="cartao"><summary>Quando vale a pena amortizar?</summary>
+    <p>Quando o custo efetivo da dívida (juros + seguros e taxas) é maior que o rendimento líquido que você teria investindo o dinheiro, e você já tem uma reserva de emergência. Se tiver dívidas mais caras, como cartão ou cheque especial, quite-as antes. Use a seção "Vale a pena amortizar agora?" na página Amortizações.</p></details>
+  <details class="cartao"><summary>Reduzir prazo ou reduzir parcela?</summary>
+    <p>Reduzir o prazo gera a maior economia de juros. Reduzir a parcela alivia o orçamento mensal, o que é útil se a prestação pesa mais de 30% da sua renda.</p></details>
+  <details class="cartao"><summary>Quanto antes amortizar, melhor?</summary>
+    <p>Sim. Os juros incidem sobre o saldo devedor, então quanto antes ele cai, mais juros você deixa de pagar nos meses seguintes.</p></details>
+  <details class="cartao"><summary>Posso usar o FGTS?</summary>
+    <p>Em financiamentos do Sistema Financeiro de Habitação (SFH), em geral sim, respeitando as regras do FGTS. Confirme as condições com o seu banco.</p></details>
+  <details class="cartao"><summary>Por que os valores daqui diferem um pouco do boleto?</summary>
+    <p>As simulações usam taxa fixa e não incluem TR, IPCA ou outras correções monetárias. Para valores exatos, importe a planilha de evolução enviada pelo banco.</p></details>
+  <details class="cartao"><summary>Como importar a planilha do banco?</summary>
+    <p>Na página <a href="{{ url_for('importar') }}">Importar planilha</a>, envie um arquivo .xlsx ou .csv com as colunas Juros, Amortização e Saldo devedor. Você pode baixar uma planilha modelo lá mesmo.</p></details>
+</div>
+{% endblock %}

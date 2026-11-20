@@ -1,0 +1,41 @@
+{% extends "app.html" %}
+{% from "_icones.html" import icone %}
+{% block content %}
+<div class="pagina-cab">
+  <div>
+    <p class="sobretitulo">Editar contrato</p>
+    <h1>Mantenha seus dados em dia.</h1>
+    <p class="subtitulo">Atualize as parcelas pagas para que saldo e simulações fiquem corretos.</p>
+  </div>
+</div>
+
+<form method="post" class="cartao form-estreito">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label class="campo">Imóvel <input name="nome" value="{{ request.form.nome or fin.nome }}" maxlength="100" required></label>
+  <div class="campos-2">
+    <label class="campo">Instituição <input name="instituicao" value="{{ request.form.instituicao or fin.instituicao }}" maxlength="100" placeholder="Ex.: Caixa Econômica Federal"></label>
+    <label class="campo">Número do contrato <input name="numero_contrato" value="{{ request.form.numero_contrato or fin.numero_contrato }}" maxlength="40" placeholder="Ex.: 0842"></label>
+  </div>
+  <label class="campo">Parcelas já pagas
+    <span class="com-sufixo"><input name="parcelas_pagas" value="{{ request.form.parcelas_pagas or fin.parcelas_pagas }}" inputmode="numeric" required><i>de {{ maximo }}</i></span>
+    {% if minimo %}<small class="muted">Mínimo {{ minimo }}, pois há amortização registrada após essa parcela.</small>{% endif %}
+  </label>
+  <dl class="ficha ficha-2 ficha-leve">
+    <div><dt>Valor financiado</dt><dd>{{ fin.valor_financiado|brl }}</dd></div>
+    <div><dt>Taxa</dt><dd>{{ fin.taxa_mensal|pct(4) }} a.m.</dd></div>
+    <div><dt>Sistema</dt><dd>{{ 'SAC' if fin.sistema == 'SAC' else 'Price' }}</dd></div>
+    <div><dt>Origem</dt><dd>{{ 'Planilha importada' if fin.origem == 'importado' else 'Simulação' }}</dd></div>
+  </dl>
+  <p class="muted">Valor, taxa e sistema definem toda a tabela de parcelas. Para mudá-los, crie uma nova simulação.</p>
+  <div class="acoes">
+    <button class="btn">Salvar alterações</button>
+    <a class="btn btn-sec" href="{{ url_for('visao_geral', fid=fin.id) }}">Cancelar</a>
+  </div>
+</form>
+
+<form method="post" action="{{ url_for('excluir', fid=fin.id) }}" class="cartao zona-perigo form-estreito" data-confirma="Excluir este contrato e todo o seu histórico? Essa ação não pode ser desfeita.">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div><strong>Excluir contrato</strong><p class="muted">Remove o contrato, as parcelas e o histórico de amortizações.</p></div>
+  <button class="btn btn-perigo">Excluir</button>
+</form>
+{% endblock %}

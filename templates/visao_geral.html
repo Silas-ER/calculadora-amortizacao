@@ -1,0 +1,118 @@
+{% extends "app.html" %}
+{% from "_icones.html" import icone %}
+{% block content %}
+<div class="pagina-cab">
+  <div>
+    <p class="sobretitulo">Visão geral</p>
+    <h1>{% if est.ctx %}Seu imóvel, mais perto de ser seu.{% else %}Seu imóvel é todo seu.{% endif %}</h1>
+    <p class="subtitulo">Acompanhe sua evolução e planeje o próximo passo.</p>
+  </div>
+  {% if est.ctx %}<a class="btn" href="{{ url_for('amortizacoes', fid=fin.id) }}">{{ icone('mais', 16) }} Nova amortização</a>{% endif %}
+</div>
+
+<div class="kpis">
+  <div class="cartao kpi">
+    <span>Saldo devedor</span>
+    <strong>{{ est.saldo|brl }}</strong>
+    <small>de {{ fin.valor_financiado|brl }} financiados</small>
+  </div>
+  <div class="cartao kpi">
+    <span>Próxima parcela</span>
+    {% if est.proxima %}
+      <strong>{{ est.proxima.valor_parcela|brl }}</strong>
+      <small>Vencimento em {{ est.proxima.data_vencimento|data_longa }}</small>
+    {% else %}<strong>Quitado</strong><small>Nenhuma parcela em aberto</small>{% endif %}
+  </div>
+  <div class="cartao kpi">
+    <span>Patrimônio quitado</span>
+    <strong>{{ est.progresso|pct }}</strong>
+    <div class="progresso" role="progressbar" aria-valuenow="{{ (est.progresso * 100)|round(1) }}" aria-valuemin="0" aria-valuemax="100"><i style="width: {{ (est.progresso * 100)|round(2) }}%"></i></div>
+    <small class="destaque-txt">{{ fin.parcelas_pagas }} de {{ fin.prazo_meses }} parcelas pagas</small>
+  </div>
+  <div class="cartao kpi">
+    <span>Juros a pagar</span>
+    <strong>{{ est.juros_restantes|brl }}</strong>
+    <small>Estimativa até o fim do contrato</small>
+  </div>
+</div>
+
+<div class="grade-2-1">
+  <section class="cartao grafico-cartao">
+    <div class="cartao-cab">
+      <div>
+        <h2>Evolução do <span data-titulo-serie>saldo devedor</span></h2>
+        <p class="muted">Veja o caminho até a quitação do seu imóvel.</p>
+      </div>
+      <label class="select-wrap">
+        <span class="sr">Série do gráfico</span>
+        <select data-serie-select>
+          <option value="s">Saldo devedor</option>
+          <option value="p">Valor da parcela</option>
+          <option value="j">Juros por parcela</option>
+        </select>
+      </label>
+    </div>
+    <div class="grafico" id="grafico" role="img" aria-label="Gráfico da evolução do saldo devedor ao longo do contrato"></div>
+    <div class="grafico-rodape">
+      <span class="legenda"><i></i> <span data-legenda-serie>Saldo devedor</span></span>
+      <span class="muted">{% if est.amortizacoes %}Inclui amortizações registradas{% else %}Projeção sem novas amortizações{% endif %} · <a href="{{ url_for('parcelas', fid=fin.id) }}">ver em tabela</a></span>
+    </div>
+    <script type="application/json" id="dados-grafico">{{ {"serie": serie, "hoje": fin.parcelas_pagas}|tojson }}</script>
+  </section>
+
+  <section class="cartao cta">
+    <p class="sobretitulo">Seu próximo grande passo</p>
+    {% if sim %}
+    <h2 class="cta-titulo">Menos juros.<br>Mais tranquilidade.</h2>
+    <p>Ao amortizar {{ sugestao|brl }} hoje, você
+      {% if sim.quitacao %}quita o seu financiamento.{% else %}pode reduzir {{ sim.meses_reduzidos }} {{ 'mês' if sim.meses_reduzidos == 1 else 'meses' }} do financiamento.{% endif %}</p>
+    <p class="cta-valor">{{ sim.economia|brl }}</p>
+    <p class="cta-legenda">de economia estimada em juros{% if fin.encargos_mensais %} e taxas{% endif %}</p>
+    <a class="btn btn-cta" href="{{ url_for('amortizacoes', fid=fin.id, valor=sugestao|num_br) }}">Simular amortização {{ icone('seta', 16) }}</a>
+    {% else %}
+    <h2 class="cta-titulo">Contrato quitado.<br>Parabéns!</h2>
+    <p>Você concluiu este financiamento. Que tal planejar o próximo?</p>
+    <a class="btn btn-cta" href="{{ url_for('simulador') }}">Fazer nova simulação {{ icone('seta', 16) }}</a>
+    {% endif %}
+  </section>
+</div>
+
+<div class="grade-2-1">
+  <section class="cartao">
+    <div class="cartao-cab com-linha">
+      <h2>Seu financiamento</h2>
+      <a class="link-forte" href="{{ url_for('editar', fid=fin.id) }}">Editar contrato {{ icone('seta-diag', 14) }}</a>
+    </div>
+    <dl class="ficha">
+      <div><dt>Imóvel</dt><dd>{{ fin.nome }}</dd></div>
+      <div><dt>Instituição</dt><dd>{{ fin.instituicao or '—' }}</dd></div>
+      <div><dt>Valor financiado</dt><dd>{{ fin.valor_financiado|brl }}</dd></div>
+      <div><dt>Taxa de juros</dt><dd>{{ fin.taxa_mensal|pct }} a.m. • {{ fin.taxa_anual|pct }} a.a.</dd></div>
+      <div><dt>Sistema</dt><dd>{{ 'SAC' if fin.sistema == 'SAC' else 'Price' }} · {{ SISTEMA_DESC[fin.sistema] }}</dd></div>
+      <div><dt>Prazo original</dt><dd>{{ fin.prazo_original }} meses{% if fin.prazo_original % 12 == 0 %} ({{ fin.prazo_original // 12 }} {{ 'ano' if fin.prazo_original == 12 else 'anos' }}){% endif %}
+        {% if fin.prazo_meses != fin.prazo_original %}<small class="destaque-txt">agora {{ fin.prazo_meses }} meses</small>{% endif %}</dd></div>
+    </dl>
+  </section>
+
+  <section class="cartao">
+    <h2>Últimas movimentações</h2>
+    {% if movs %}
+    <ul class="movs">
+      {% for m in movs %}
+      <li>{{ icone('check' if m.tipo == 'parcela' else 'seta-diag', 16) }}
+        <div><strong>{{ m.titulo }}</strong><small>{{ m.data|data_longa }}</small></div>
+        <span>{{ m.valor|brl }}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">Nenhuma parcela marcada como paga ainda. Atualize em <a href="{{ url_for('editar', fid=fin.id) }}">Editar contrato</a>.</p>
+    {% endif %}
+  </section>
+</div>
+
+<footer class="rodape-pagina">
+  <span>Valores estimados{% if not fin.encargos_mensais %}, sem seguros e tarifas{% endif %}, sem correção monetária.</span>
+  <span>Atualizado em {{ hoje|data_longa }} • Todos os valores em reais</span>
+</footer>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='grafico.js') }}"></script>{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+{% block body_class %}layout-app{% endblock %}
+{% block body %}
+{% set f = g.fin_nav %}
+<aside class="lateral" id="lateral">
+  <a class="logo" href="{{ url_for('index') }}">habita<small>Financiamento sob controle</small></a>
+
+  <p class="lat-titulo">Espaço pessoal</p>
+  <nav class="lat-nav">
+    {% if f %}
+    <a href="{{ url_for('visao_geral', fid=f.id) }}" {% if pagina == 'Visão geral' %}class="ativo"{% endif %}>{{ icone('grade') }} Visão geral</a>
+    <a href="{{ url_for('parcelas', fid=f.id) }}" {% if pagina == 'Planilha de parcelas' %}class="ativo"{% endif %}>{{ icone('lista') }} Planilha de parcelas</a>
+    <a href="{{ url_for('amortizacoes', fid=f.id) }}" {% if pagina == 'Amortizações' %}class="ativo"{% endif %}>{{ icone('seta-diag') }} Amortizações</a>
+    <a href="{{ url_for('simulador', de=f.id) }}" {% if pagina == 'Comparar SAC e Price' %}class="ativo"{% endif %}>{{ icone('troca') }} Comparar SAC e Price</a>
+    {% else %}
+    <a href="{{ url_for('contratos') }}" {% if pagina == 'Meus contratos' %}class="ativo"{% endif %}>{{ icone('pasta') }} Meus contratos</a>
+    <a href="{{ url_for('simulador') }}" {% if pagina == 'Comparar SAC e Price' %}class="ativo"{% endif %}>{{ icone('troca') }} Comparar SAC e Price</a>
+    <a href="{{ url_for('importar') }}" {% if pagina == 'Importar planilha' %}class="ativo"{% endif %}>{{ icone('subir') }} Importar planilha</a>
+    {% endif %}
+  </nav>
+
+  {% if f %}
+  <div class="lat-sep"></div>
+  <p class="lat-titulo">Meu contrato</p>
+  <p class="lat-contrato">{{ f.nome }}</p>
+  {% if f.instituicao or f.numero_contrato %}
+  <p class="lat-sub">{{ f.instituicao }}{% if f.instituicao and f.numero_contrato %} • {% endif %}{% if f.numero_contrato %}Contrato {{ f.numero_contrato }}{% endif %}</p>
+  {% endif %}
+  <a class="lat-link" href="{{ url_for('contratos') }}">{% if g.contratos|length > 1 %}Trocar de contrato{% else %}Meus contratos{% endif %} {{ icone('seta', 14) }}</a>
+  {% endif %}
+
+  <div class="lat-card">
+    <strong>Um passo de cada vez.</strong>
+    <p>Cada amortização aproxima você da sua liberdade financeira.</p>
+    <a href="{{ url_for('amortizacoes', fid=f.id) if f else url_for('simulador') }}">Explorar simulações {{ icone('seta-diag', 14) }}</a>
+  </div>
+
+  <div class="lat-rodape">
+    <a href="{{ url_for('ajuda') }}" {% if pagina == 'Central de ajuda' %}class="ativo"{% endif %}>{{ icone('ajuda', 16) }} Central de ajuda</a>
+    <form method="post" action="{{ url_for('logout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button>Sair da conta {{ icone('seta', 14) }}</button>
+    </form>
+  </div>
+</aside>
+
+<div class="principal">
+  <header class="topo">
+    <button class="menu-btn" type="button" data-abre-menu aria-label="Abrir menu">{{ icone('menu') }}</button>
+    <nav class="trilha" aria-label="Você está em">
+      <a href="{{ url_for('index') }}">Meu financiamento</a><span>/</span><strong>{{ pagina }}</strong>
+    </nav>
+    <div class="topo-dir">
+      <button class="tema-btn" type="button" data-tema-btn>
+        <span class="so-claro">{{ icone('sol', 16) }} Claro</span><span class="so-escuro">{{ icone('lua', 16) }} Escuro</span>
+        {{ icone('chevron', 14) }}
+      </button>
+      <div class="usuario"><strong>{{ g.user.nome or g.user.email }}</strong><small>Conta pessoal</small></div>
+    </div>
+  </header>
+
+  <main class="conteudo">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in msgs %}<div class="alerta {{ cat }}" role="status">{{ msg }}</div>{% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

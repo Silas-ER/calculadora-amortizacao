@@ -1,0 +1,21 @@
+{% extends "auth.html" %}
+{% from "_icones.html" import icone %}
+{% block topo %}<span>Ainda não tem uma conta?</span> <a class="link-forte" href="{{ url_for('registrar') }}">Criar conta {{ icone('seta-diag', 14) }}</a>{% endblock %}
+{% block content %}
+<p class="sobretitulo">Bem-vindo de volta</p>
+<h1 class="auth-titulo">Seu próximo passo começa aqui.</h1>
+<p class="subtitulo">Acesse seu espaço e continue seu planejamento.</p>
+<form method="post" class="form-auth">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="email">E-mail</label>
+  <input id="email" name="email" value="{{ email }}" placeholder="voce@exemplo.com" required autofocus autocomplete="email" inputmode="email">
+  <div class="rotulo-linha"><label for="senha">Senha</label></div>
+  <div class="campo-senha">
+    <input id="senha" type="password" name="senha" placeholder="Digite sua senha" required autocomplete="current-password">
+    <button type="button" class="olho" data-mostra-senha="senha" aria-label="Mostrar senha">{{ icone('olho', 18) }}</button>
+  </div>
+  <label class="check"><input type="checkbox" name="manter" value="1"> Manter conectado neste dispositivo</label>
+  <button class="btn btn-grande">Entrar na minha conta {{ icone('seta', 16) }}</button>
+</form>
+<p class="auth-nota">Seus dados protegidos. Seu futuro em boas mãos.</p>
+{% endblock %}

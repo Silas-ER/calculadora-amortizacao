@@ -1,0 +1,170 @@
+{% extends "app.html" %}
+{% from "_icones.html" import icone %}
+{% block content %}
+<div class="pagina-cab">
+  <div>
+    <p class="sobretitulo">Amortizações</p>
+    <h1>Antecipe hoje. Respire melhor amanhã.</h1>
+    <p class="subtitulo">Simule o impacto de um pagamento extra antes de decidir.</p>
+  </div>
+  <a class="btn btn-sec" href="#historico">Ver histórico {{ icone('seta-diag', 14) }}</a>
+</div>
+
+{% if not est.ctx %}
+<div class="cartao"><p>Este financiamento já está quitado. Não há saldo para amortizar.</p></div>
+{% else %}
+<div class="grade-sim">
+  <form method="post" class="cartao" id="form-sim" action="{{ url_for('amortizacoes', fid=fin.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>Simular uma amortização</h2>
+    <p class="muted">Ajuste os dados ao seu contrato atual.</p>
+    <div class="campos-2">
+      <label class="campo">Saldo devedor atual
+        <span class="com-prefixo"><i>R$</i><input name="saldo" value="{{ form.saldo }}" inputmode="decimal" required></span></label>
+      <label class="campo">Prazo restante
+        <span class="com-sufixo"><input name="prazo" value="{{ form.prazo }}" inputmode="numeric" required><i>meses</i></span></label>
+      <label class="campo">Taxa de juros mensal
+        <span class="com-sufixo"><input name="taxa" value="{{ form.taxa }}" inputmode="decimal" required><i>%</i></span></label>
+      <fieldset class="campo">
+        <legend>Sistema de amortização</legend>
+        <div class="segmentado">
+          <label><input type="radio" name="sistema" value="SAC" {% if form.sistema == 'SAC' %}checked{% endif %}><span>SAC</span></label>
+          <label><input type="radio" name="sistema" value="PRICE" {% if form.sistema == 'PRICE' %}checked{% endif %}><span>Price</span></label>
+        </div>
+      </fieldset>
+    </div>
+    <label class="campo">Quanto deseja amortizar?
+      <span class="com-prefixo"><i>R$</i><input name="valor" value="{{ form.valor }}" inputmode="decimal" required data-valor-amort></span>
+      <small class="muted">Use recursos próprios ou o saldo do FGTS.</small></label>
+    <fieldset class="campo">
+      <legend>O que você prefere reduzir?</legend>
+      <div class="opcoes-radio">
+        <label><input type="radio" name="modalidade" value="prazo" {% if form.modalidade != 'parcela' %}checked{% endif %}><span>Prazo do contrato</span></label>
+        <label><input type="radio" name="modalidade" value="parcela" {% if form.modalidade == 'parcela' %}checked{% endif %}><span>Valor da parcela</span></label>
+      </div>
+    </fieldset>
+    <button class="btn btn-largo" name="acao" value="simular">Calcular economia {{ icone('seta', 16) }}</button>
+  </form>
+
+  <section class="painel-sim" aria-live="polite">
+    {% if sim %}
+    <div class="painel-cab">
+      <span class="sobretitulo">Sua simulação</span>
+      <span class="selo">{{ 'Reduzir prazo' if sim.modalidade == 'prazo' else 'Reduzir parcela' }}</span>
+    </div>
+    <h2>Um futuro com menos juros.</h2>
+    <p class="painel-rot">Economia estimada</p>
+    <p class="painel-valor">{{ sim.economia|brl }}</p>
+    <table class="painel-tab">
+      <thead><tr><th></th><th>Hoje</th><th>Com amortização</th></tr></thead>
+      <tbody>
+        <tr><td>Prazo restante</td><td>{{ sim.totais_base.meses }} meses</td><td>{{ sim.totais_nova.meses }} meses</td></tr>
+        <tr><td>Próxima parcela</td><td>{{ sim.totais_base.primeira|brl }}</td><td>{{ sim.totais_nova.primeira|brl }}</td></tr>
+        <tr><td>Juros restantes</td><td>{{ sim.totais_base.juros|brl }}</td><td>{{ sim.totais_nova.juros|brl }}</td></tr>
+        <tr><td>Saldo após amortização</td><td>{{ (sim.base[0].saldo_devedor + sim.base[0].amortizacao)|brl if sim.base else '—' }}</td>
+          <td>{{ ((sim.base[0].saldo_devedor + sim.base[0].amortizacao) - sim.valor)|brl if sim.base else '—' }}</td></tr>
+      </tbody>
+    </table>
+    <div class="painel-destaque">
+      {% if sim.quitacao %}
+        <strong>Contrato quitado</strong><span>Esse valor liquida todo o saldo devedor.</span>
+      {% elif sim.modalidade == 'prazo' %}
+        <strong>{{ sim.meses_reduzidos }} {{ 'mês' if sim.meses_reduzidos == 1 else 'meses' }} a menos</strong>
+        <span>{{ sim.meses_reduzidos|meses_extenso }} mais perto da quitação.</span>
+      {% else %}
+        <strong>{{ sim.reducao_parcela|brl }} a menos por mês</strong>
+        <span>Mesmo prazo, mais folga no orçamento.</span>
+      {% endif %}
+    </div>
+    {% if sim_personalizada %}<p class="painel-nota">Simulação com dados ajustados por você, diferentes do contrato salvo.</p>{% endif %}
+    {% else %}
+    <h2>Informe um valor para simular.</h2>
+    {% endif %}
+  </section>
+</div>
+
+<section class="cartao" id="recomendacao">
+  <div class="cartao-cab com-linha">
+    <div>
+      <h2>Vale a pena amortizar agora?</h2>
+      <p class="muted">Responda 4 perguntas e diremos se compensa, quanto e de que forma.</p>
+    </div>
+  </div>
+  <form method="post" action="{{ url_for('amortizacoes', fid=fin.id) }}#recomendacao" class="campos-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="campo">Dinheiro disponível hoje
+      <span class="com-prefixo"><i>R$</i><input name="caixa" value="{{ form.caixa }}" inputmode="decimal" required></span></label>
+    <label class="campo">Despesas mensais da família
+      <span class="com-prefixo"><i>R$</i><input name="despesas" value="{{ form.despesas }}" inputmode="decimal" required></span></label>
+    <label class="campo">Reserva de emergência
+      <span class="com-sufixo"><input name="meses_reserva" value="{{ form.meses_reserva }}" inputmode="numeric"><i>meses</i></span></label>
+    <label class="campo">Rendimento líquido do investimento
+      <span class="com-sufixo"><input name="rend" value="{{ form.rend }}" inputmode="decimal" placeholder="9,5" required><i>% a.a.</i></span></label>
+    <label class="campo">Renda mensal líquida <small class="muted">(opcional)</small>
+      <span class="com-prefixo"><i>R$</i><input name="renda" value="{{ form.renda }}" inputmode="decimal"></span></label>
+    <button class="btn" name="acao" value="recomendar">Analisar {{ icone('seta', 16) }}</button>
+  </form>
+
+  {% if rec %}
+  <div class="veredito {{ rec.decisao }}">
+    <h3>{% if rec.decisao == 'sim' %}Sim, vale amortizar {{ rec.valor|brl }}
+        {% elif rec.decisao == 'parcial' %}Amortização parcial: {{ rec.valor|brl }}
+        {% else %}Melhor não amortizar agora{% endif %}</h3>
+    {% if rec.valor > 0 %}<p>Sugestão: <strong>{{ 'reduzir o prazo' if rec.modalidade == 'prazo' else 'reduzir a parcela' }}</strong>
+      {% set s = rec.simulacoes[rec.modalidade] %}, com economia estimada de <strong>{{ s.economia|brl }}</strong>.</p>{% endif %}
+    <ul>{% for m in rec.motivos %}<li>{{ m }}</li>{% endfor %}</ul>
+    <p class="muted">Custo efetivo da dívida (juros + seguros/taxas): {{ rec.cet_mensal|pct(4) }} a.m. · {{ rec.cet_anual|pct }} a.a.</p>
+    {% if rec.valor > 0 %}
+    <a class="btn btn-sec" href="{{ url_for('amortizacoes', fid=fin.id, valor=rec.valor|num_br) }}">Simular este valor {{ icone('seta', 14) }}</a>
+    {% endif %}
+  </div>
+  {% if rec.sensibilidade %}
+  <h3 class="mt">Quanto amortizar? Economia por valor (reduzindo prazo)</h3>
+  <table class="tabela">
+    <thead><tr><th class="n">Valor amortizado</th><th class="n">Economia</th><th class="n">Parcelas a menos</th><th class="n">Economia / valor</th></tr></thead>
+    <tbody>{% for s in rec.sensibilidade %}
+      <tr><td class="n forte">{{ s.valor|brl }}</td><td class="n">{{ s.economia|brl }}</td><td class="n">{{ s.meses }}</td><td class="n">{{ s.retorno|pct(0) }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+  {% endif %}
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="cartao" id="historico">
+  <div class="cartao-cab com-linha">
+    <h2>Histórico de amortizações</h2>
+    {% if est.ctx %}
+    <button class="btn btn-sec" form="form-sim" formaction="{{ url_for('aplicar_amortizacao', fid=fin.id) }}" data-registrar>
+      {{ icone('mais', 16) }} Registrar amortização</button>
+    {% endif %}
+  </div>
+  {% if est.amortizacoes %}
+  <div class="rolagem-x">
+  <table class="tabela">
+    <thead><tr><th>Data</th><th class="n">Após parcela</th><th class="n">Valor</th><th>Modalidade</th>
+      <th class="n">Prazo</th><th class="n">Parcela</th><th class="n">Economia</th></tr></thead>
+    <tbody>
+    {% for a in est.amortizacoes %}
+    <tr><td>{{ a.data|data_longa }}</td><td class="n">{{ '%03d'|format(a.apos_parcela) }}</td><td class="n forte">{{ a.valor|brl }}</td>
+      <td>{{ 'Reduzir prazo' if a.modalidade == 'prazo' else 'Reduzir parcela' }}</td>
+      <td class="n">{{ a.prazo_antes }} → {{ a.prazo_depois }}</td>
+      <td class="n">{{ a.parcela_antes|brl }} → {{ a.parcela_depois|brl }}</td>
+      <td class="n destaque-txt forte">{{ a.economia|brl }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="total-economia">Economia total estimada: <strong>{{ est.economia_total|brl }}</strong></p>
+  {% else %}
+  <div class="vazio">
+    <strong>Seu próximo passo começa aqui.</strong>
+    <p class="muted">Você ainda não registrou pagamentos extras. Após realizar uma amortização no banco, registre os dados para acompanhar sua evolução.</p>
+  </div>
+  {% endif %}
+</section>
+
+<footer class="rodape-pagina">
+  <span>Simulação ilustrativa em {{ 'SAC' if fin.sistema == 'SAC' else 'Price' }}, com taxa fixa. Não inclui TR ou atualização monetária.</span>
+</footer>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "app.html" %}
+{% from "_icones.html" import icone %}
+{% block content %}
+<div class="pagina-cab">
+  <div>
+    <p class="sobretitulo">Meus contratos</p>
+    <h1>{% if itens %}Seus imóveis, num só lugar.{% else %}Vamos começar?{% endif %}</h1>
+    <p class="subtitulo">{% if itens %}Escolha um contrato para acompanhar.{% else %}Simule um financiamento ou importe a planilha do seu banco.{% endif %}</p>
+  </div>
+  <div class="acoes">
+    <a class="btn btn-sec" href="{{ url_for('importar') }}">{{ icone('subir', 16) }} Importar planilha</a>
+    <a class="btn" href="{{ url_for('simulador') }}">{{ icone('mais', 16) }} Nova simulação</a>
+  </div>
+</div>
+
+{% if itens %}
+<div class="grade-contratos">
+  {% for f, e in itens %}
+  <a class="cartao contrato {% if g.fin_nav and g.fin_nav.id == f.id %}atual{% endif %}" href="{{ url_for('visao_geral', fid=f.id) }}">
+    <div class="cartao-cab">
+      <div><h2>{{ f.nome }}</h2>
+        <p class="muted">{{ f.instituicao or ('Planilha importada' if f.origem == 'importado' else 'Simulação') }}{% if f.numero_contrato %} • Contrato {{ f.numero_contrato }}{% endif %}</p></div>
+      <span class="pilula prevista">{{ 'SAC' if f.sistema == 'SAC' else 'Price' }}</span>
+    </div>
+    <dl class="ficha ficha-2">
+      <div><dt>Saldo devedor</dt><dd>{{ e.saldo|brl }}</dd></div>
+      <div><dt>Próxima parcela</dt><dd>{{ e.proxima.valor_parcela|brl if e.proxima else 'Quitado' }}</dd></div>
+    </dl>
+    <div class="progresso"><i style="width: {{ (e.progresso * 100)|round(2) }}%"></i></div>
+    <small class="destaque-txt">{{ e.progresso|pct(1) }} quitado • {{ f.parcelas_pagas }} de {{ f.prazo_meses }} parcelas</small>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="grade-2">
+  <a class="cartao contrato" href="{{ url_for('simulador') }}">
+    <h2>{{ icone('troca') }} Simular um financiamento</h2>
+    <p class="muted">Informe valor, taxa e prazo, compare SAC e Price e salve o que for melhor para você.</p>
+  </a>
+  <a class="cartao contrato" href="{{ url_for('importar') }}">
+    <h2>{{ icone('subir') }} Importar planilha do banco</h2>
+    <p class="muted">Envie a evolução do financiamento (.xlsx ou .csv). Taxa e sistema são detectados automaticamente.</p>
+  </a>
+</div>
+{% endif %}
+{% endblock %}
