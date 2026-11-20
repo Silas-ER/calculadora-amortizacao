@@ -1,0 +1,135 @@
+{% extends "app.html" %}
+{% from "_icones.html" import icone %}
+{% block content %}
+<div class="pagina-cab">
+  <div>
+    <p class="sobretitulo">Devo amortizar?</p>
+    <h1>A decisão certa, na hora certa.</h1>
+    <p class="subtitulo">Compare o custo da sua dívida com o que o seu dinheiro rende e descubra quanto amortizar.</p>
+  </div>
+  <a class="btn btn-sec" href="{{ url_for('amortizacoes', fid=fin.id) }}">Simular manualmente {{ icone('seta-diag', 14) }}</a>
+</div>
+
+{% if not est.ctx %}
+<div class="cartao"><p>Este financiamento já está quitado. Não há saldo para amortizar.</p></div>
+{% else %}
+<div class="grade-sim">
+  <form method="post" class="cartao">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>Sua situação hoje</h2>
+    <p class="muted">Usamos esses dados apenas para este cálculo. Nada é salvo.</p>
+    <div class="campos-2">
+      <label class="campo">Dinheiro disponível
+        <span class="com-prefixo"><i>R$</i><input name="caixa" value="{{ form.caixa }}" inputmode="decimal" placeholder="0,00" required></span></label>
+      <label class="campo">Despesas mensais da família
+        <span class="com-prefixo"><i>R$</i><input name="despesas" value="{{ form.despesas }}" inputmode="decimal" placeholder="0,00" required></span></label>
+      <label class="campo">Reserva de emergência
+        <span class="com-sufixo"><input name="meses_reserva" value="{{ form.meses_reserva }}" inputmode="numeric"><i>meses</i></span></label>
+      <label class="campo">Rendimento líquido do investimento
+        <span class="com-sufixo"><input name="rend" value="{{ form.rend }}" inputmode="decimal" placeholder="9,5" required><i>% a.a.</i></span></label>
+    </div>
+    <label class="campo">Renda mensal líquida <small class="muted inline-small">(opcional)</small>
+      <span class="com-prefixo"><i>R$</i><input name="renda" value="{{ form.renda }}" inputmode="decimal" placeholder="0,00"></span>
+      <small class="muted">Se a parcela pesar mais de 30% da renda, sugerimos reduzir a parcela em vez do prazo.</small></label>
+    <p class="muted dica-campo">Rendimento líquido é quanto seu investimento rende já descontado o imposto de renda. Ex.: um CDB a 100% do CDI.</p>
+    <button class="btn btn-largo">Analisar minha situação {{ icone('seta', 16) }}</button>
+  </form>
+
+  <section class="painel-sim" aria-live="polite">
+    {% if rec %}
+    {% set s = rec.simulacoes[rec.modalidade] if rec.simulacoes else none %}
+    <div class="painel-cab">
+      <span class="sobretitulo">Nossa recomendação</span>
+      <span class="selo selo-{{ rec.decisao }}">{{ {'sim': 'Amortizar', 'parcial': 'Amortizar em parte', 'nao': 'Aguardar'}[rec.decisao] }}</span>
+    </div>
+    <h2>{% if rec.decisao == 'sim' %}Vale a pena amortizar.{% elif rec.decisao == 'parcial' %}Amortize uma parte.{% else %}Melhor esperar agora.{% endif %}</h2>
+    {% if s %}
+    <p class="painel-rot">Valor sugerido · {{ 'reduzir o prazo' if rec.modalidade == 'prazo' else 'reduzir a parcela' }}</p>
+    <p class="painel-valor">{{ rec.valor|brl }}</p>
+    <table class="painel-tab">
+      <thead><tr><th></th><th>Hoje</th><th>Após amortizar</th></tr></thead>
+      <tbody>
+        <tr><td>Custo da dívida</td><td colspan="2">{{ rec.cet_anual|pct }} a.a.</td></tr>
+        <tr><td>Prazo restante</td><td>{{ s.totais_base.meses }} meses</td><td>{{ s.totais_nova.meses }} meses</td></tr>
+        <tr><td>Próxima parcela</td><td>{{ s.totais_base.primeira|brl }}</td><td>{{ s.totais_nova.primeira|brl }}</td></tr>
+      </tbody>
+    </table>
+    <div class="painel-destaque">
+      <strong>{{ s.economia|brl }} de economia</strong>
+      <span>{% if s.quitacao %}Esse valor quita o contrato.{% elif rec.modalidade == 'prazo' %}{{ s.meses_reduzidos|meses_extenso }} mais perto da quitação.{% else %}{{ s.reducao_parcela|brl }} a menos por mês.{% endif %}</span>
+    </div>
+    {% else %}
+    <p class="painel-rot">Custo efetivo da dívida</p>
+    <p class="painel-valor">{{ rec.cet_anual|pct }} <small>a.a.</small></p>
+    <div class="painel-destaque">
+      <strong>Mantenha o dinheiro guardado</strong>
+      <span>{{ rec.motivos[0] }}</span>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="painel-cab"><span class="sobretitulo">Nossa recomendação</span></div>
+    <h2>Quatro respostas, uma decisão clara.</h2>
+    <p class="painel-rot">Comparamos três coisas:</p>
+    <ul class="painel-lista">
+      <li><strong>Reserva de emergência:</strong> ela vem antes de qualquer amortização.</li>
+      <li><strong>Custo da dívida x rendimento:</strong> só compensa amortizar se a dívida custa mais do que seu dinheiro rende.</li>
+      <li><strong>Peso da parcela na renda:</strong> define se é melhor reduzir prazo ou parcela.</li>
+    </ul>
+    <div class="painel-destaque">
+      <strong>Custo da sua dívida: {{ fin.taxa_anual|pct }} a.a.</strong>
+      <span>Taxa do contrato, sem seguros e taxas.</span>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+{% if rec %}
+<section class="cartao">
+  <div class="cartao-cab com-linha"><h2>Por que essa recomendação</h2></div>
+  <ul class="motivos">{% for m in rec.motivos %}<li>{{ icone('check', 16) }}<span>{{ m }}</span></li>{% endfor %}</ul>
+</section>
+
+{% if rec.sensibilidade %}
+<section class="cartao cartao-tabela">
+  <div class="cartao-cab">
+    <div><h2>Quanto amortizar?</h2><p class="muted">Economia para diferentes valores, reduzindo o prazo.</p></div>
+  </div>
+  <div class="rolagem-x">
+  <table class="tabela">
+    <thead><tr><th>Valor amortizado</th><th class="n">Economia estimada</th><th class="n">Parcelas a menos</th><th class="n">Economia por real</th><th></th></tr></thead>
+    <tbody>{% for x in rec.sensibilidade %}
+      <tr {% if x.valor == rec.valor %}class="st-proxima"{% endif %}>
+        <td class="forte">{{ x.valor|brl }}</td><td class="n destaque-txt forte">{{ x.economia|brl }}</td>
+        <td class="n">{{ x.meses }}</td><td class="n muted">{{ x.retorno|pct(0) }}</td>
+        <td class="n"><a class="link-forte" href="{{ url_for('amortizacoes', fid=fin.id, valor=x.valor|num_br) }}">Simular {{ icone('seta', 14) }}</a></td></tr>
+    {% endfor %}</tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+
+{% if rec.simulacoes %}
+<div class="grade-2">
+  {% for m in ('prazo', 'parcela') %}{% set x = rec.simulacoes[m] %}
+  <section class="cartao comparativo {% if m == rec.modalidade %}menor{% endif %}">
+    <div class="cartao-cab">
+      <h2>{{ 'Reduzir prazo' if m == 'prazo' else 'Reduzir parcela' }}</h2>
+      {% if m == rec.modalidade %}<span class="pilula proxima">Sugerido</span>{% endif %}
+    </div>
+    <dl class="ficha ficha-2">
+      <div><dt>Economia</dt><dd class="destaque-txt forte">{{ x.economia|brl }}</dd></div>
+      <div><dt>Prazo restante</dt><dd>{{ x.totais_nova.meses }} meses</dd></div>
+      <div><dt>Próxima parcela</dt><dd>{{ x.totais_nova.primeira|brl }}</dd></div>
+      <div><dt>Juros restantes</dt><dd>{{ x.totais_nova.juros|brl }}</dd></div>
+    </dl>
+  </section>
+  {% endfor %}
+</div>
+{% endif %}
+{% endif %}
+{% endif %}
+
+<footer class="rodape-pagina">
+  <span>Recomendação educativa, baseada em taxa fixa. Não inclui TR, IPCA ou custos de transação. Confirme as condições com seu banco.</span>
+</footer>
+{% endblock %}

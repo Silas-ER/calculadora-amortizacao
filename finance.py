@@ -296,6 +296,8 @@ def parse_num(v):
         s = s.replace(",", ".")
     elif s.count(".") > 1:
         s = s.replace(".", "")
+    elif "." in s and len(s.split(".")[1]) == 3 and s.split(".")[0].lstrip("-") not in ("", "0"):
+        s = s.replace(".", "")  # "80.000" no padrão brasileiro = oitenta mil
     try:
         n = float(s)
     except ValueError:

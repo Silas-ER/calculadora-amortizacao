@@ -1,0 +1,23 @@
+{% extends "auth.html" %}
+{% from "_icones.html" import icone %}
+{% block topo %}<span>Lembrou a senha?</span> <a class="link-forte" href="{{ url_for('login') }}">Entrar {{ icone('seta-diag', 14) }}</a>{% endblock %}
+{% block content %}
+{% if enviado %}
+<p class="sobretitulo">Verifique seu e-mail</p>
+<h1 class="auth-titulo">Link a caminho.</h1>
+<p class="subtitulo">Se existir uma conta com esse e-mail, você vai receber um link para criar uma nova senha. Ele vale por 1 hora.</p>
+<div class="aviso-auth">{{ icone('email', 20) }}<span>Não chegou? Confira a caixa de spam ou <a href="{{ url_for('esqueci_senha') }}">tente novamente</a>.</span></div>
+<a class="btn btn-grande" href="{{ url_for('login') }}">Voltar para o login {{ icone('seta', 16) }}</a>
+{% else %}
+<p class="sobretitulo">Recuperar acesso</p>
+<h1 class="auth-titulo">Esqueceu a senha? Acontece.</h1>
+<p class="subtitulo">Informe o e-mail da sua conta e enviaremos um link para criar uma nova senha.</p>
+<form method="post" class="form-auth">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="email">E-mail</label>
+  <input id="email" type="email" name="email" placeholder="voce@exemplo.com" required autofocus autocomplete="email">
+  <button class="btn btn-grande">Enviar link de redefinição {{ icone('seta', 16) }}</button>
+</form>
+{% endif %}
+<p class="auth-nota">Seus dados protegidos. Seu futuro em boas mãos.</p>
+{% endblock %}

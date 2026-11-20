@@ -1,0 +1,25 @@
+{% extends "auth.html" %}
+{% from "_icones.html" import icone %}
+{% block auth_class %}auth-largo{% endblock %}
+{% block topo %}<a class="link-forte" href="{{ url_for('index') }}">Voltar {{ icone('seta-diag', 14) }}</a>{% endblock %}
+{% block content %}
+<p class="sobretitulo">Privacidade</p>
+<h1 class="auth-titulo">Seus dados, sob seu controle.</h1>
+<p class="subtitulo">Como o habita trata as informações que você cadastra.</p>
+<article class="texto-legal">
+  <h2>Quais dados guardamos</h2>
+  <ul>
+    <li><strong>Conta:</strong> nome, e-mail e senha. A senha é guardada com hash e nunca em texto puro.</li>
+    <li><strong>Contratos:</strong> valor financiado, taxa de juros, prazo, sistema de amortização, parcelas, instituição e as amortizações que você registrar.</li>
+    <li><strong>Planilhas importadas:</strong> só guardamos os números das parcelas. O arquivo original é descartado depois da leitura.</li>
+  </ul>
+  <h2>O que não guardamos</h2>
+  <p>As respostas da página "Devo amortizar?" (dinheiro disponível, despesas, renda e rendimento) são usadas só naquele cálculo e não ficam salvas.</p>
+  <h2>Para que usamos</h2>
+  <p>Exclusivamente para calcular e mostrar a evolução do seu financiamento. Não vendemos nem compartilhamos seus dados com terceiros. Cada conta só acessa os próprios contratos.</p>
+  <h2>Cookies e armazenamento local</h2>
+  <p>Usamos um cookie de sessão para manter você conectado e o armazenamento do navegador para lembrar o tema claro ou escuro. Não usamos cookies de publicidade nem de rastreamento. A fonte do site (Inter) é carregada do Google Fonts.</p>
+  <h2>Seus direitos</h2>
+  <p>Você pode corrigir nome e e-mail e excluir sua conta a qualquer momento em <a href="{{ url_for('conta') }}">Minha conta</a>. A exclusão apaga a conta, os contratos e o histórico de forma definitiva.</p>
+</article>
+{% endblock %}

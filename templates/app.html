@@ -12,6 +12,7 @@
     <a href="{{ url_for('visao_geral', fid=f.id) }}" {% if pagina == 'Visão geral' %}class="ativo"{% endif %}>{{ icone('grade') }} Visão geral</a>
     <a href="{{ url_for('parcelas', fid=f.id) }}" {% if pagina == 'Planilha de parcelas' %}class="ativo"{% endif %}>{{ icone('lista') }} Planilha de parcelas</a>
     <a href="{{ url_for('amortizacoes', fid=f.id) }}" {% if pagina == 'Amortizações' %}class="ativo"{% endif %}>{{ icone('seta-diag') }} Amortizações</a>
+    <a href="{{ url_for('recomendacao', fid=f.id) }}" {% if pagina == 'Devo amortizar?' %}class="ativo"{% endif %}>{{ icone('lampada') }} Devo amortizar?</a>
     <a href="{{ url_for('simulador', de=f.id) }}" {% if pagina == 'Comparar SAC e Price' %}class="ativo"{% endif %}>{{ icone('troca') }} Comparar SAC e Price</a>
     {% else %}
     <a href="{{ url_for('contratos') }}" {% if pagina == 'Meus contratos' %}class="ativo"{% endif %}>{{ icone('pasta') }} Meus contratos</a>
@@ -56,7 +57,8 @@
         <span class="so-claro">{{ icone('sol', 16) }} Claro</span><span class="so-escuro">{{ icone('lua', 16) }} Escuro</span>
         {{ icone('chevron', 14) }}
       </button>
-      <div class="usuario"><strong>{{ g.user.nome or g.user.email }}</strong><small>Conta pessoal</small></div>
+      <a class="usuario {% if pagina == 'Minha conta' %}ativo{% endif %}" href="{{ url_for('conta') }}" title="Minha conta">
+        <strong>{{ g.user.nome or g.user.email }}</strong><small>Conta pessoal</small></a>
     </div>
   </header>
 

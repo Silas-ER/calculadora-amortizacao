@@ -9,7 +9,7 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label for="email">E-mail</label>
   <input id="email" name="email" value="{{ email }}" placeholder="voce@exemplo.com" required autofocus autocomplete="email" inputmode="email">
-  <div class="rotulo-linha"><label for="senha">Senha</label></div>
+  <div class="rotulo-linha"><label for="senha">Senha</label><a class="link-pequeno" href="{{ url_for('esqueci_senha') }}">Esqueci minha senha</a></div>
   <div class="campo-senha">
     <input id="senha" type="password" name="senha" placeholder="Digite sua senha" required autocomplete="current-password">
     <button type="button" class="olho" data-mostra-senha="senha" aria-label="Mostrar senha">{{ icone('olho', 18) }}</button>

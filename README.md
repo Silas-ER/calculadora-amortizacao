@@ -35,6 +35,16 @@ Abra http://127.0.0.1:5000, crie uma conta e comece.
 | `design/` | telas exportadas do Figma (referência) |
 | `instance/app.db` | banco de dados (criado automaticamente) |
 
+## E-mail (recuperação de senha)
+
+Sem configuração, o link de "Esqueci minha senha" aparece no terminal onde o servidor está rodando.
+Para enviar e-mails de verdade, defina as variáveis de ambiente:
+
+```powershell
+$env:SMTP_HOST = "smtp.seuprovedor.com"; $env:SMTP_PORT = "587"
+$env:SMTP_USER = "usuario"; $env:SMTP_PASSWORD = "senha"; $env:SMTP_FROM = "habita <nao-responda@seudominio.com>"
+```
+
 ## Produção
 
 Defina a variável `SECRET_KEY`, rode com um servidor WSGI (ex.: `waitress-serve app:app`) atrás de HTTPS

@@ -2,7 +2,7 @@
 {% from "_icones.html" import icone %}
 {% block body_class %}layout-auth{% endblock %}
 {% block body %}
-<div class="auth-pagina">
+<div class="auth-pagina {% block auth_class %}{% endblock %}">
   <header class="auth-topo">{% block topo %}{% endblock %}</header>
   <main class="auth-main">
     {% with msgs = get_flashed_messages(with_categories=true) %}
@@ -12,7 +12,7 @@
   </main>
   <footer class="auth-rodape">
     <span>© 2026 habita</span>
-    <span>Privacidade <i>•</i> Termos de uso</span>
+    <span><a href="{{ url_for('privacidade') }}">Privacidade</a> <i>•</i> <a href="{{ url_for('termos') }}">Termos de uso</a></span>
   </footer>
 </div>
 {% endblock %}

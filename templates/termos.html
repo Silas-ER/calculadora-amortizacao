@@ -1,0 +1,25 @@
+{% extends "auth.html" %}
+{% from "_icones.html" import icone %}
+{% block auth_class %}auth-largo{% endblock %}
+{% block topo %}<a class="link-forte" href="{{ url_for('index') }}">Voltar {{ icone('seta-diag', 14) }}</a>{% endblock %}
+{% block content %}
+<p class="sobretitulo">Termos de uso</p>
+<h1 class="auth-titulo">Combinados simples.</h1>
+<p class="subtitulo">O que você pode esperar do habita e o que esperamos de você.</p>
+<article class="texto-legal">
+  <h2>O que o habita faz</h2>
+  <p>O habita é uma ferramenta de simulação e acompanhamento de financiamentos imobiliários. Ele calcula parcelas nos sistemas SAC e Price, simula amortizações extras e sugere quando e quanto amortizar.</p>
+  <h2>Simulações são estimativas</h2>
+  <p>Os cálculos usam taxa de juros fixa e não incluem TR, IPCA ou outras correções monetárias, nem custos que a sua instituição possa cobrar. Os valores reais estão no seu contrato e nos documentos do banco. As recomendações são educativas e não substituem orientação financeira profissional.</p>
+  <h2>Sua conta</h2>
+  <ul>
+    <li>Mantenha sua senha em sigilo. Você é responsável pelo que for feito com a sua conta.</li>
+    <li>Cadastre apenas dados de contratos que você tem direito de consultar.</li>
+    <li>Você pode excluir sua conta a qualquer momento em <a href="{{ url_for('conta') }}">Minha conta</a>.</li>
+  </ul>
+  <h2>Disponibilidade</h2>
+  <p>Trabalhamos para manter o serviço disponível e os dados íntegros, mas recomendamos exportar suas planilhas (CSV) para guardar uma cópia.</p>
+  <h2>Mudanças</h2>
+  <p>Estes termos podem ser atualizados. Mudanças relevantes serão avisadas no próprio app.</p>
+</article>
+{% endblock %}

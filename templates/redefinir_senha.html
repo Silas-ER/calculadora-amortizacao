@@ -1,0 +1,26 @@
+{% extends "auth.html" %}
+{% from "_icones.html" import icone %}
+{% block topo %}<a class="link-forte" href="{{ url_for('login') }}">Voltar para o login {{ icone('seta-diag', 14) }}</a>{% endblock %}
+{% block content %}
+{% if valido %}
+<p class="sobretitulo">Nova senha</p>
+<h1 class="auth-titulo">Crie uma nova senha.</h1>
+<p class="subtitulo">Use pelo menos 8 caracteres. Depois é só entrar normalmente.</p>
+<form method="post" class="form-auth">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="senha">Nova senha</label>
+  <div class="campo-senha">
+    <input id="senha" type="password" name="senha" placeholder="Mínimo de 8 caracteres" required minlength="8" autofocus autocomplete="new-password">
+    <button type="button" class="olho" data-mostra-senha="senha" aria-label="Mostrar senha">{{ icone('olho', 18) }}</button>
+  </div>
+  <label for="confirma">Confirmar nova senha</label>
+  <input id="confirma" type="password" name="confirma" placeholder="Repita a senha" required minlength="8" autocomplete="new-password">
+  <button class="btn btn-grande">Salvar nova senha {{ icone('seta', 16) }}</button>
+</form>
+{% else %}
+<p class="sobretitulo">Link expirado</p>
+<h1 class="auth-titulo">Este link não vale mais.</h1>
+<p class="subtitulo">Links de redefinição valem por 1 hora e só podem ser usados uma vez. Peça um novo para continuar.</p>
+<a class="btn btn-grande" href="{{ url_for('esqueci_senha') }}">Pedir novo link {{ icone('seta', 16) }}</a>
+{% endif %}
+{% endblock %}

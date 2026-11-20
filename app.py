@@ -1,10 +1,13 @@
 import csv
+import hashlib
 import io
 import math
 import os
 import re
 import secrets
-from datetime import date, timedelta
+import smtplib
+from datetime import date, datetime, timedelta
+from email.message import EmailMessage
 from functools import wraps
 
 from flask import (Flask, Response, abort, flash, g, redirect, render_template,
@@ -167,6 +170,161 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
+# ---------------------------------------------------------------- recuperação de senha
+
+def enviar_email(destino, assunto, corpo):
+    """Envia por SMTP se configurado (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM);
+    caso contrário, mostra a mensagem no terminal do servidor (modo desenvolvimento)."""
+    host = os.environ.get("SMTP_HOST")
+    if not host:
+        app.logger.warning("SMTP não configurado. E-mail para %s\nAssunto: %s\n\n%s", destino, assunto, corpo)
+        return
+    msg = EmailMessage()
+    msg["Subject"], msg["To"] = assunto, destino
+    msg["From"] = os.environ.get("SMTP_FROM", os.environ.get("SMTP_USER", "nao-responda@localhost"))
+    msg.set_content(corpo)
+    with smtplib.SMTP(host, int(os.environ.get("SMTP_PORT", 587)), timeout=20) as s:
+        s.starttls()
+        if os.environ.get("SMTP_USER"):
+            s.login(os.environ["SMTP_USER"], os.environ.get("SMTP_PASSWORD", ""))
+        s.send_message(msg)
+
+
+def _hash_token(token):
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+@app.route("/esqueci-senha", methods=["GET", "POST"])
+def esqueci_senha():
+    if g.user:
+        return redirect(url_for("index"))
+    enviado = False
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        db = get_db()
+        u = db.execute("SELECT id, email FROM usuarios WHERE email = ?", (email,)).fetchone()
+        if u:
+            token = secrets.token_urlsafe(32)
+            db.execute("DELETE FROM redefinicoes_senha WHERE usuario_id = ?", (u["id"],))
+            db.execute("INSERT INTO redefinicoes_senha (token_hash, usuario_id, expira_em) VALUES (?, ?, ?)",
+                       (_hash_token(token), u["id"], (datetime.now() + timedelta(hours=1)).isoformat()))
+            db.commit()
+            link = url_for("redefinir_senha", token=token, _external=True)
+            try:
+                enviar_email(u["email"], "Redefinição de senha · habita",
+                             f"Recebemos um pedido para redefinir sua senha.\n\nAcesse o link abaixo (válido por 1 hora):\n{link}\n\n"
+                             "Se não foi você, ignore este e-mail.")
+            except (OSError, smtplib.SMTPException):
+                app.logger.exception("Falha ao enviar e-mail de redefinição")
+        enviado = True  # mesma resposta exista ou não a conta
+    return render_template("esqueci_senha.html", enviado=enviado, pagina="Esqueci minha senha")
+
+
+@app.route("/redefinir-senha/<token>", methods=["GET", "POST"])
+def redefinir_senha(token):
+    db = get_db()
+    r = db.execute("SELECT * FROM redefinicoes_senha WHERE token_hash = ? AND usado = 0", (_hash_token(token),)).fetchone()
+    valido = r is not None and datetime.fromisoformat(r["expira_em"]) > datetime.now()
+    if valido and request.method == "POST":
+        senha, confirma = request.form.get("senha", ""), request.form.get("confirma", "")
+        if len(senha) < 8:
+            flash("A senha deve ter pelo menos 8 caracteres.", "erro")
+        elif senha != confirma:
+            flash("As senhas não conferem.", "erro")
+        else:
+            db.execute("UPDATE usuarios SET password_hash = ? WHERE id = ?", (generate_password_hash(senha), r["usuario_id"]))
+            db.execute("UPDATE redefinicoes_senha SET usado = 1 WHERE token_hash = ?", (r["token_hash"],))
+            db.commit()
+            session.clear()
+            flash("Senha redefinida. Entre com a nova senha.", "ok")
+            return redirect(url_for("login"))
+    return render_template("redefinir_senha.html", valido=valido, pagina="Redefinir senha")
+
+
+# ---------------------------------------------------------------- páginas públicas, conta e erros
+
+@app.route("/privacidade")
+def privacidade():
+    return render_template("privacidade.html", pagina="Privacidade")
+
+
+@app.route("/termos")
+def termos():
+    return render_template("termos.html", pagina="Termos de uso")
+
+
+@app.route("/conta", methods=["GET", "POST"])
+@login_required
+def conta():
+    db = get_db()
+    if request.method == "POST":
+        acao = request.form.get("acao")
+        if acao == "perfil":
+            nome = request.form.get("nome", "").strip()[:80]
+            email = request.form.get("email", "").strip().lower()
+            if not nome:
+                flash("Informe seu nome.", "erro")
+            elif not EMAIL_RE.fullmatch(email):
+                flash("Informe um e-mail válido.", "erro")
+            elif db.execute("SELECT 1 FROM usuarios WHERE email = ? AND id <> ?", (email, g.user["id"])).fetchone():
+                flash("Já existe outra conta com este e-mail.", "erro")
+            else:
+                db.execute("UPDATE usuarios SET nome = ?, email = ? WHERE id = ?", (nome, email, g.user["id"]))
+                db.commit()
+                flash("Dados atualizados.", "ok")
+                return redirect(url_for("conta"))
+        elif acao == "senha":
+            u = db.execute("SELECT password_hash FROM usuarios WHERE id = ?", (g.user["id"],)).fetchone()
+            nova, confirma = request.form.get("nova", ""), request.form.get("confirma", "")
+            if not check_password_hash(u["password_hash"], request.form.get("atual", "")):
+                flash("Senha atual incorreta.", "erro")
+            elif len(nova) < 8:
+                flash("A nova senha deve ter pelo menos 8 caracteres.", "erro")
+            elif nova != confirma:
+                flash("As senhas não conferem.", "erro")
+            else:
+                db.execute("UPDATE usuarios SET password_hash = ? WHERE id = ?", (generate_password_hash(nova), g.user["id"]))
+                db.commit()
+                flash("Senha alterada.", "ok")
+                return redirect(url_for("conta"))
+    return render_template("conta.html", pagina="Minha conta")
+
+
+@app.post("/conta/excluir")
+@login_required
+def excluir_conta():
+    db = get_db()
+    u = db.execute("SELECT password_hash FROM usuarios WHERE id = ?", (g.user["id"],)).fetchone()
+    if not check_password_hash(u["password_hash"], request.form.get("senha", "")):
+        flash("Senha incorreta. A conta não foi excluída.", "erro")
+        return redirect(url_for("conta"))
+    db.execute("DELETE FROM usuarios WHERE id = ?", (g.user["id"],))
+    db.commit()
+    session.clear()
+    flash("Sua conta e todos os seus dados foram excluídos.", "ok")
+    return redirect(url_for("login"))
+
+
+ERROS = {
+    400: ("Algo não saiu como esperado.", "A requisição não pôde ser processada. Recarregue a página e tente novamente."),
+    404: ("Página não encontrada.", "O endereço pode ter mudado, ou este conteúdo não pertence à sua conta."),
+    413: ("Arquivo grande demais.", "Envie uma planilha de até 5 MB."),
+    500: ("Tivemos um problema do nosso lado.", "Tente novamente em instantes."),
+}
+
+
+def _erro(e):
+    codigo = getattr(e, "code", 500) or 500
+    titulo, texto = ERROS.get(codigo, ERROS[500])
+    if codigo == 400 and getattr(e, "description", "") and "Token" in e.description:
+        texto = e.description
+    return render_template("erro.html", codigo=codigo, titulo=titulo, texto=texto, pagina=f"Erro {codigo}"), codigo
+
+
+for _c in ERROS:
+    app.register_error_handler(_c, _erro)
 
 
 # ---------------------------------------------------------------- helpers de dados
@@ -358,8 +516,8 @@ def amortizacoes(fid):
     fin = get_fin(fid)
     est = carregar_estado(fin)
     ctx = est["ctx"]
-    sim = rec = None
-    form = {"caixa": "", "despesas": "", "meses_reserva": "6", "rend": "", "renda": "", "modalidade": "prazo"}
+    sim = None
+    form = {"modalidade": "prazo"}
     if ctx:
         valor_ini = fz.parse_num(request.args.get("valor")) or fz.sugestao_amortizacao(est["saldo"])
         form.update({"saldo": num_br(ctx["saldo"]), "prazo": str(ctx["n_rest"]), "taxa": num_br(ctx["i"] * 100, 4),
@@ -374,20 +532,33 @@ def amortizacoes(fid):
             else:
                 sim_ctx.update({"saldo": saldo, "n_rest": int(prazo), "i": taxa / 100,
                                 "sistema": form["sistema"] if form["sistema"] in ("SAC", "PRICE") else ctx["sistema"]})
-        if request.method == "POST" and request.form.get("acao") == "recomendar":
-            caixa, despesas, rend = num("caixa"), num("despesas"), num("rend")
-            if caixa is None or despesas is None or rend is None:
-                flash("Preencha dinheiro disponível, despesas mensais e rendimento do investimento.", "erro")
-            else:
-                rec = fz.recomendar(ctx, caixa, despesas, int(num("meses_reserva", 6)), rend / 100, num("renda"))
         valor = fz.parse_num(form["valor"]) or 0
         if valor > 0:
             sim = fz.simular_amortizacao(sim_ctx, valor, form["modalidade"] if form["modalidade"] in ("prazo", "parcela") else "prazo")
         sim_personalizada = any(sim_ctx[c] != ctx[c] for c in ("saldo", "n_rest", "i", "sistema"))
     else:
         sim_personalizada = False
-    return render_template("amortizacoes.html", fin=fin, est=est, form=form, sim=sim, rec=rec,
+    return render_template("amortizacoes.html", fin=fin, est=est, form=form, sim=sim,
                            sim_personalizada=sim_personalizada, pagina="Amortizações")
+
+
+@app.route("/financiamentos/<int:fid>/recomendacao", methods=["GET", "POST"])
+@login_required
+def recomendacao(fid):
+    fin = get_fin(fid)
+    est = carregar_estado(fin)
+    form = {"caixa": "", "despesas": "", "meses_reserva": "6", "rend": "", "renda": ""}
+    rec = None
+    if request.method == "POST" and est["ctx"]:
+        form.update({k: request.form.get(k, "").strip() for k in form})
+        caixa, despesas, rend, meses = num("caixa"), num("despesas"), num("rend"), num("meses_reserva", 6)
+        if caixa is None or despesas is None or rend is None:
+            flash("Preencha dinheiro disponível, despesas mensais e rendimento do investimento.", "erro")
+        elif caixa < 0 or despesas < 0 or meses < 0 or meses > 60:
+            flash("Confira os valores informados.", "erro")
+        else:
+            rec = fz.recomendar(est["ctx"], caixa, despesas, int(meses), rend / 100, num("renda"))
+    return render_template("recomendacao.html", fin=fin, est=est, form=form, rec=rec, pagina="Devo amortizar?")
 
 
 @app.post("/financiamentos/<int:fid>/amortizacoes/registrar")

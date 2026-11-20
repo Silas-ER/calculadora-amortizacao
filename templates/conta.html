@@ -1,0 +1,58 @@
+{% extends "app.html" %}
+{% from "_icones.html" import icone %}
+{% block content %}
+<div class="pagina-cab">
+  <div>
+    <p class="sobretitulo">Minha conta</p>
+    <h1>Seu espaço, do seu jeito.</h1>
+    <p class="subtitulo">Atualize seus dados de acesso e preferências.</p>
+  </div>
+</div>
+
+<div class="grade-2">
+  <form method="post" class="cartao">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="cartao-cab com-linha"><h2>Dados pessoais</h2></div>
+    <label class="campo">Nome <input name="nome" value="{{ request.form.nome or g.user.nome }}" maxlength="80" required autocomplete="name"></label>
+    <label class="campo">E-mail <input type="email" name="email" value="{{ request.form.email or g.user.email }}" required autocomplete="email"></label>
+    <button class="btn" name="acao" value="perfil">Salvar dados</button>
+  </form>
+
+  <form method="post" class="cartao">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="cartao-cab com-linha"><h2>Alterar senha</h2></div>
+    <label class="campo">Senha atual <input type="password" name="atual" required autocomplete="current-password"></label>
+    <div class="campos-2">
+      <label class="campo">Nova senha <input type="password" name="nova" required minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></label>
+      <label class="campo">Confirmar nova senha <input type="password" name="confirma" required minlength="8" autocomplete="new-password"></label>
+    </div>
+    <button class="btn" name="acao" value="senha">{{ icone('cadeado', 16) }} Alterar senha</button>
+  </form>
+</div>
+
+<section class="cartao">
+  <div class="cartao-cab com-linha"><h2>Aparência</h2></div>
+  <div class="linha-controles">
+    <span>Tema do app</span>
+    <button class="tema-btn" type="button" data-tema-btn>
+      <span class="so-claro">{{ icone('sol', 16) }} Claro</span><span class="so-escuro">{{ icone('lua', 16) }} Escuro</span>
+    </button>
+    <span class="muted">A escolha fica salva neste navegador.</span>
+  </div>
+</section>
+
+<form method="post" action="{{ url_for('excluir_conta') }}" class="cartao zona-perigo" data-confirma="Excluir sua conta, todos os contratos e o histórico? Essa ação não pode ser desfeita.">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div><strong>Excluir conta</strong>
+    <p class="muted">Apaga sua conta e todos os seus contratos de forma definitiva. Confirme com sua senha.</p></div>
+  <div class="linha-controles sem-margem">
+    <label class="sr" for="senha-excluir">Senha</label>
+    <input id="senha-excluir" type="password" name="senha" placeholder="Sua senha" required autocomplete="current-password">
+    <button class="btn btn-perigo">Excluir conta</button>
+  </div>
+</form>
+
+<footer class="rodape-pagina">
+  <span><a href="{{ url_for('privacidade') }}">Privacidade</a> • <a href="{{ url_for('termos') }}">Termos de uso</a></span>
+</footer>
+{% endblock %}

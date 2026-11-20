@@ -83,52 +83,11 @@
   </section>
 </div>
 
-<section class="cartao" id="recomendacao">
-  <div class="cartao-cab com-linha">
-    <div>
-      <h2>Vale a pena amortizar agora?</h2>
-      <p class="muted">Responda 4 perguntas e diremos se compensa, quanto e de que forma.</p>
-    </div>
-  </div>
-  <form method="post" action="{{ url_for('amortizacoes', fid=fin.id) }}#recomendacao" class="campos-3">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label class="campo">Dinheiro disponível hoje
-      <span class="com-prefixo"><i>R$</i><input name="caixa" value="{{ form.caixa }}" inputmode="decimal" required></span></label>
-    <label class="campo">Despesas mensais da família
-      <span class="com-prefixo"><i>R$</i><input name="despesas" value="{{ form.despesas }}" inputmode="decimal" required></span></label>
-    <label class="campo">Reserva de emergência
-      <span class="com-sufixo"><input name="meses_reserva" value="{{ form.meses_reserva }}" inputmode="numeric"><i>meses</i></span></label>
-    <label class="campo">Rendimento líquido do investimento
-      <span class="com-sufixo"><input name="rend" value="{{ form.rend }}" inputmode="decimal" placeholder="9,5" required><i>% a.a.</i></span></label>
-    <label class="campo">Renda mensal líquida <small class="muted">(opcional)</small>
-      <span class="com-prefixo"><i>R$</i><input name="renda" value="{{ form.renda }}" inputmode="decimal"></span></label>
-    <button class="btn" name="acao" value="recomendar">Analisar {{ icone('seta', 16) }}</button>
-  </form>
-
-  {% if rec %}
-  <div class="veredito {{ rec.decisao }}">
-    <h3>{% if rec.decisao == 'sim' %}Sim, vale amortizar {{ rec.valor|brl }}
-        {% elif rec.decisao == 'parcial' %}Amortização parcial: {{ rec.valor|brl }}
-        {% else %}Melhor não amortizar agora{% endif %}</h3>
-    {% if rec.valor > 0 %}<p>Sugestão: <strong>{{ 'reduzir o prazo' if rec.modalidade == 'prazo' else 'reduzir a parcela' }}</strong>
-      {% set s = rec.simulacoes[rec.modalidade] %}, com economia estimada de <strong>{{ s.economia|brl }}</strong>.</p>{% endif %}
-    <ul>{% for m in rec.motivos %}<li>{{ m }}</li>{% endfor %}</ul>
-    <p class="muted">Custo efetivo da dívida (juros + seguros/taxas): {{ rec.cet_mensal|pct(4) }} a.m. · {{ rec.cet_anual|pct }} a.a.</p>
-    {% if rec.valor > 0 %}
-    <a class="btn btn-sec" href="{{ url_for('amortizacoes', fid=fin.id, valor=rec.valor|num_br) }}">Simular este valor {{ icone('seta', 14) }}</a>
-    {% endif %}
-  </div>
-  {% if rec.sensibilidade %}
-  <h3 class="mt">Quanto amortizar? Economia por valor (reduzindo prazo)</h3>
-  <table class="tabela">
-    <thead><tr><th class="n">Valor amortizado</th><th class="n">Economia</th><th class="n">Parcelas a menos</th><th class="n">Economia / valor</th></tr></thead>
-    <tbody>{% for s in rec.sensibilidade %}
-      <tr><td class="n forte">{{ s.valor|brl }}</td><td class="n">{{ s.economia|brl }}</td><td class="n">{{ s.meses }}</td><td class="n">{{ s.retorno|pct(0) }}</td></tr>
-    {% endfor %}</tbody>
-  </table>
-  {% endif %}
-  {% endif %}
-</section>
+<a class="cartao faixa-link" href="{{ url_for('recomendacao', fid=fin.id) }}">
+  <div><strong>Não sabe se vale a pena amortizar?</strong>
+    <span class="muted">Responda 4 perguntas e diremos se compensa, quanto e de que forma.</span></div>
+  <span class="link-forte">Descobrir {{ icone('seta', 14) }}</span>
+</a>
 {% endif %}
 
 <section class="cartao" id="historico">

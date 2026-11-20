@@ -1,0 +1,12 @@
+{% extends "auth.html" %}
+{% from "_icones.html" import icone %}
+{% block topo %}{% endblock %}
+{% block content %}
+<p class="sobretitulo">Erro {{ codigo }}</p>
+<h1 class="auth-titulo">{{ titulo }}</h1>
+<p class="subtitulo">{{ texto }}</p>
+<div class="acoes">
+  <a class="btn" href="{{ url_for('index') }}">Ir para o início {{ icone('seta', 16) }}</a>
+  <a class="btn btn-sec" href="javascript:history.back()">Voltar</a>
+</div>
+{% endblock %}
