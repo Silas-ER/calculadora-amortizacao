@@ -20,11 +20,11 @@
     <p class="muted">Ajuste os dados ao seu contrato atual.</p>
     <div class="campos-2">
       <label class="campo">Saldo devedor atual
-        <span class="com-prefixo"><i>R$</i><input name="saldo" value="{{ form.saldo }}" inputmode="decimal" required></span></label>
+        <span class="com-prefixo"><i>R$</i><input name="saldo" value="{{ form.saldo }}" data-mascara="moeda" required></span></label>
       <label class="campo">Prazo restante
-        <span class="com-sufixo"><input name="prazo" value="{{ form.prazo }}" inputmode="numeric" required><i>meses</i></span></label>
+        <span class="com-sufixo"><input name="prazo" value="{{ form.prazo }}" data-mascara="inteiro" required><i>meses</i></span></label>
       <label class="campo">Taxa de juros mensal
-        <span class="com-sufixo"><input name="taxa" value="{{ form.taxa }}" inputmode="decimal" required><i>%</i></span></label>
+        <span class="com-sufixo"><input name="taxa" value="{{ form.taxa }}" data-mascara="taxa" required><i>%</i></span></label>
       <fieldset class="campo">
         <legend>Sistema de amortização</legend>
         <div class="segmentado">
@@ -34,7 +34,7 @@
       </fieldset>
     </div>
     <label class="campo">Quanto deseja amortizar?
-      <span class="com-prefixo"><i>R$</i><input name="valor" value="{{ form.valor }}" inputmode="decimal" required data-valor-amort></span>
+      <span class="com-prefixo"><i>R$</i><input name="valor" value="{{ form.valor }}" data-mascara="moeda" required data-valor-amort></span>
       <small class="muted">Use recursos próprios ou o saldo do FGTS.</small></label>
     <fieldset class="campo">
       <legend>O que você prefere reduzir?</legend>

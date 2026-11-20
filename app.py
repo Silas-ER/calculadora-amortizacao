@@ -454,7 +454,7 @@ def simulador():
     de = request.args.get("de", type=int)
     if request.method == "GET" and de:
         f = get_fin(de)
-        form.update({"valor": num_br(f["valor_financiado"]), "taxa": num_br(f["taxa_anual"] * 100, 4),
+        form.update({"valor": num_br(f["valor_financiado"]), "taxa": num_br(f["taxa_anual"] * 100, 2),
                      "prazo": str(f["prazo_original"]), "data_primeira": f["data_primeira"],
                      "encargos": num_br(f["encargos_mensais"])})
     comp = None
@@ -636,7 +636,7 @@ def amortizacoes(fid):
     form = {"modalidade": "prazo"}
     if ctx:
         valor_ini = fz.parse_num(request.args.get("valor")) or fz.sugestao_amortizacao(est["saldo"])
-        form.update({"saldo": num_br(ctx["saldo"]), "prazo": str(ctx["n_rest"]), "taxa": num_br(ctx["i"] * 100, 4),
+        form.update({"saldo": num_br(ctx["saldo"]), "prazo": str(ctx["n_rest"]), "taxa": num_br(ctx["i"] * 100, 2),
                      "sistema": ctx["sistema"], "valor": num_br(valor_ini)})
         sim_ctx = dict(ctx)
         if request.method == "POST":
@@ -646,7 +646,10 @@ def amortizacoes(fid):
             if not saldo or saldo <= 0 or not prazo or prazo < 1 or prazo != int(prazo) or taxa is None or taxa < 0:
                 flash("Confira saldo devedor, prazo restante e taxa de juros.", "erro")
             else:
-                sim_ctx.update({"saldo": saldo, "n_rest": int(prazo), "i": taxa / 100,
+                # taxa exibida com 2 casas: se só difere pelo arredondamento, vale a do contrato
+                i = ctx["i"] if abs(taxa / 100 - ctx["i"]) <= 0.0000501 else taxa / 100
+                saldo = ctx["saldo"] if abs(saldo - ctx["saldo"]) < 0.005 else saldo
+                sim_ctx.update({"saldo": saldo, "n_rest": int(prazo), "i": i,
                                 "sistema": form["sistema"] if form["sistema"] in ("SAC", "PRICE") else ctx["sistema"]})
         valor = fz.parse_num(form["valor"]) or 0
         if valor > 0:

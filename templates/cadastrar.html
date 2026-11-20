@@ -32,15 +32,15 @@
     </div>
     <div class="campos-3">
       <label class="campo">Valor financiado
-        <span class="com-prefixo"><i>R$</i><input name="valor" value="{{ form.valor }}" inputmode="decimal" placeholder="360.000,00" required></span></label>
+        <span class="com-prefixo"><i>R$</i><input name="valor" value="{{ form.valor }}" data-mascara="moeda" required></span></label>
       <label class="campo">Taxa de juros
-        <span class="com-sufixo"><input name="taxa" value="{{ form.taxa }}" inputmode="decimal" placeholder="9,38" required>
+        <span class="com-sufixo"><input name="taxa" value="{{ form.taxa }}" data-mascara="taxa" required>
           <select name="tipo_taxa" aria-label="Período da taxa">
             <option value="anual" {% if form.tipo_taxa == 'anual' %}selected{% endif %}>% a.a.</option>
             <option value="mensal" {% if form.tipo_taxa == 'mensal' %}selected{% endif %}>% a.m.</option>
           </select></span></label>
       <label class="campo">Prazo total
-        <span class="com-sufixo"><input name="prazo" value="{{ form.prazo }}" inputmode="numeric" placeholder="360" required><i>meses</i></span></label>
+        <span class="com-sufixo"><input name="prazo" value="{{ form.prazo }}" data-mascara="inteiro" required><i>meses</i></span></label>
       <fieldset class="campo">
         <legend>Sistema de amortização</legend>
         <div class="segmentado">
@@ -50,7 +50,7 @@
       </fieldset>
       <label class="campo">Data da 1ª parcela <input type="date" name="data_primeira" value="{{ form.data_primeira }}" required></label>
       <label class="campo">Seguros e taxas mensais
-        <span class="com-prefixo"><i>R$</i><input name="encargos" value="{{ form.encargos }}" inputmode="decimal"></span></label>
+        <span class="com-prefixo"><i>R$</i><input name="encargos" value="{{ form.encargos }}" data-mascara="moeda"></span></label>
     </div>
   </section>
 
@@ -60,11 +60,11 @@
     </div>
     <div class="campos-3">
       <label class="campo">Parcelas já pagas
-        <span class="com-sufixo"><input name="parcelas_pagas" value="{{ form.parcelas_pagas }}" inputmode="numeric"><i>parcelas</i></span></label>
+        <span class="com-sufixo"><input name="parcelas_pagas" value="{{ form.parcelas_pagas }}" data-mascara="inteiro"><i>parcelas</i></span></label>
       <label class="campo">Saldo devedor atual <small class="muted inline-small">(opcional)</small>
-        <span class="com-prefixo"><i>R$</i><input name="saldo_atual" value="{{ form.saldo_atual }}" inputmode="decimal" placeholder="Do extrato do banco"></span></label>
+        <span class="com-prefixo"><i>R$</i><input name="saldo_atual" value="{{ form.saldo_atual }}" data-mascara="moeda"></span></label>
       <label class="campo">Parcelas restantes <small class="muted inline-small">(opcional)</small>
-        <span class="com-sufixo"><input name="prazo_restante" value="{{ form.prazo_restante }}" inputmode="numeric" placeholder="Do extrato"><i>meses</i></span></label>
+        <span class="com-sufixo"><input name="prazo_restante" value="{{ form.prazo_restante }}" data-mascara="inteiro" placeholder="Do extrato"><i>meses</i></span></label>
     </div>
     <div class="nota-faixa sem-margem-baixo">
       <strong class="nota-rot">Por que informar o saldo?</strong>

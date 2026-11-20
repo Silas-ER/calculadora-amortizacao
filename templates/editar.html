@@ -17,7 +17,7 @@
     <label class="campo">Número do contrato <input name="numero_contrato" value="{{ request.form.numero_contrato or fin.numero_contrato }}" maxlength="40" placeholder="Ex.: 0842"></label>
   </div>
   <label class="campo">Parcelas já pagas
-    <span class="com-sufixo"><input name="parcelas_pagas" value="{{ request.form.parcelas_pagas or fin.parcelas_pagas }}" inputmode="numeric" required><i>de {{ maximo }}</i></span>
+    <span class="com-sufixo"><input name="parcelas_pagas" value="{{ request.form.parcelas_pagas or fin.parcelas_pagas }}" data-mascara="inteiro" required><i>de {{ maximo }}</i></span>
     {% if minimo %}<small class="muted">Mínimo {{ minimo }}, pois há amortização registrada após essa parcela.</small>{% endif %}
   </label>
   <dl class="ficha ficha-2 ficha-leve">

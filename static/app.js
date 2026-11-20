@@ -67,6 +67,40 @@
     });
   }
 
+  // máscaras numéricas: os dígitos entram pela direita (0,01 → 0,12 → 1,23 → 12,34 …)
+  const MAX_DIGITOS = 15;
+  const milhar = (s) => s.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  function formatar(digitos, casas) {
+    if (!casas) return digitos.replace(/^0+(?=\d)/, '').slice(0, 4); // inteiros: só dígitos, "0" é válido
+    digitos = digitos.replace(/^0+/, '').slice(0, MAX_DIGITOS);
+    if (!digitos) return '';
+    digitos = digitos.padStart(casas + 1, '0');
+    return milhar(digitos.slice(0, -casas)) + ',' + digitos.slice(-casas);
+  }
+  // valor vindo do servidor ("336.000,00", "9,38", "6") → dígitos com o número certo de casas
+  function digitosIniciais(valor, casas) {
+    if (!valor) return '';
+    const n = parseFloat(valor.replace(/\./g, '').replace(',', '.'));
+    return isNaN(n) ? '' : Math.round(n * 10 ** casas).toString();
+  }
+  document.querySelectorAll('input[data-mascara]').forEach((inp) => {
+    const tipo = inp.dataset.mascara;
+    const casas = tipo === 'inteiro' ? 0 : +(inp.dataset.casas || 2);
+    inp.inputMode = 'numeric';
+    inp.autocomplete = 'off';
+    if (casas && !inp.placeholder) inp.placeholder = '0,' + '0'.repeat(casas);
+    inp.value = formatar(casas ? digitosIniciais(inp.value, casas) : inp.value.replace(/\D/g, ''), casas);
+    const fimDoCampo = () => { const n = inp.value.length; inp.setSelectionRange(n, n); };
+    inp.addEventListener('input', () => {
+      inp.value = formatar(inp.value.replace(/\D/g, ''), casas);
+      if (casas) fimDoCampo();
+    });
+    if (casas) {
+      inp.addEventListener('focus', () => setTimeout(fimDoCampo));
+      inp.addEventListener('click', fimDoCampo);
+    }
+  });
+
   // envia a foto de perfil assim que for escolhida
   document.querySelectorAll('[data-foto-input]').forEach((i) => i.addEventListener('change', () => {
     if (i.files[0]) i.closest('form').submit();
