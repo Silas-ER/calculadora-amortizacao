@@ -21,6 +21,21 @@ def mensal_para_anual(taxa_mensal: float) -> float:
     return (1 + taxa_mensal) ** 12 - 1
 
 
+def taxa_mensal(taxa_pct: float, tipo: str) -> float:
+    """Converte a taxa digitada para taxa efetiva mensal.
+
+    efetiva  -> % a.a. efetiva:  (1 + a)^(1/12) - 1
+    nominal  -> % a.a. nominal com capitalização mensal (padrão dos contratos habitacionais): a / 12
+    mensal   -> % a.m.
+    """
+    t = taxa_pct / 100
+    if tipo == "nominal":
+        return t / 12
+    if tipo == "mensal":
+        return t
+    return anual_para_mensal(t)
+
+
 def pmt(saldo: float, i: float, n: int) -> float:
     """Parcela fixa (sem encargos) da tabela PRICE."""
     if n <= 0:

@@ -35,8 +35,9 @@
         <span class="com-prefixo"><i>R$</i><input name="valor" value="{{ form.valor }}" data-mascara="moeda" required></span></label>
       <label class="campo">Taxa de juros
         <span class="com-sufixo"><input name="taxa" value="{{ form.taxa }}" data-mascara="taxa" required>
-          <select name="tipo_taxa" aria-label="Período da taxa">
-            <option value="anual" {% if form.tipo_taxa == 'anual' %}selected{% endif %}>% a.a.</option>
+          <select name="tipo_taxa" aria-label="Tipo da taxa">
+            <option value="anual" {% if form.tipo_taxa == 'anual' %}selected{% endif %}>% a.a. efetiva</option>
+            <option value="nominal" {% if form.tipo_taxa == 'nominal' %}selected{% endif %}>% a.a. nominal</option>
             <option value="mensal" {% if form.tipo_taxa == 'mensal' %}selected{% endif %}>% a.m.</option>
           </select></span></label>
       <label class="campo">Prazo total
@@ -51,6 +52,11 @@
       <label class="campo">Data da 1ª parcela <input type="date" name="data_primeira" value="{{ form.data_primeira }}" required></label>
       <label class="campo">Seguros e taxas mensais
         <span class="com-prefixo"><i>R$</i><input name="encargos" value="{{ form.encargos }}" data-mascara="moeda"></span></label>
+    </div>
+    <div class="nota-faixa sem-margem-baixo">
+      <strong class="nota-rot">Nominal ou efetiva?</strong>
+      O contrato traz as duas. A <strong>nominal</strong> é a mensal × 12; a <strong>efetiva</strong> inclui os juros sobre juros e é um pouco maior.
+      Use qualquer uma, desde que escolha o tipo certo ao lado da taxa.
     </div>
   </section>
 

@@ -478,7 +478,7 @@ def simulador():
             flash(erro, "erro")
         else:
             prazo = int(prazo)
-            i = fz.anual_para_mensal(taxa / 100) if form["tipo_taxa"] == "anual" else taxa / 100
+            i = fz.taxa_mensal(taxa, form["tipo_taxa"])
             tabelas = {s: fz.gerar_tabela(valor, i, prazo, s, data_primeira, encargos) for s in ("SAC", "PRICE")}
             acao = request.form.get("acao", "")
             if acao.startswith("salvar_"):
@@ -539,7 +539,7 @@ def cadastrar():
             flash(erro, "erro")
         else:
             prazo, pagas = int(prazo), int(pagas)
-            i = fz.anual_para_mensal(taxa / 100) if form["tipo_taxa"] == "anual" else taxa / 100
+            i = fz.taxa_mensal(taxa, form["tipo_taxa"])
             linhas = fz.gerar_tabela(valor, i, prazo, form["sistema"], data_primeira, encargos)
             if saldo_atual is not None:
                 restantes = int(prazo_rest) if prazo_rest else prazo - pagas

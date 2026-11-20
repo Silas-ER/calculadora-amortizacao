@@ -16,9 +16,10 @@
       <span class="com-prefixo"><i>R$</i><input name="valor" value="{{ form.valor }}" data-mascara="moeda" required></span></label>
     <label class="campo">Taxa de juros
       <span class="com-sufixo"><input name="taxa" value="{{ form.taxa }}" data-mascara="taxa" required>
-        <select name="tipo_taxa" aria-label="Período da taxa">
-          <option value="anual" {% if form.tipo_taxa == 'anual' %}selected{% endif %}>% a.a.</option>
-          <option value="mensal" {% if form.tipo_taxa == 'mensal' %}selected{% endif %}>% a.m.</option>
+        <select name="tipo_taxa" aria-label="Tipo da taxa">
+          <option value="anual" {% if form.tipo_taxa == 'anual' %}selected{% endif %}>% a.a. efetiva</option>
+            <option value="nominal" {% if form.tipo_taxa == 'nominal' %}selected{% endif %}>% a.a. nominal</option>
+            <option value="mensal" {% if form.tipo_taxa == 'mensal' %}selected{% endif %}>% a.m.</option>
         </select></span></label>
     <label class="campo">Prazo
       <span class="com-sufixo"><input name="prazo" value="{{ form.prazo }}" data-mascara="inteiro" required><i>meses</i></span></label>
@@ -31,7 +32,7 @@
   </div>
 
   {% if comp %}
-  <p class="muted mt">Taxa efetiva: {{ comp.i|pct(4) }} a.m. · {{ comp.anual|pct }} a.a.</p>
+  <p class="muted mt">Taxa usada: {{ comp.i|pct(4) }} a.m. · {{ comp.anual|pct }} a.a. efetiva · {{ (comp.i * 12)|pct }} a.a. nominal</p>
   <div class="grade-2">
     {% for s in ('SAC', 'PRICE') %}{% set t = comp.totais[s] %}
     <div class="cartao comparativo {% if t.juros == [comp.totais.SAC.juros, comp.totais.PRICE.juros]|min %}menor{% endif %}">
