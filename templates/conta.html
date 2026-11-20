@@ -1,5 +1,5 @@
 {% extends "app.html" %}
-{% from "_icones.html" import icone %}
+{% from "_icones.html" import icone, avatar %}
 {% block content %}
 <div class="pagina-cab">
   <div>
@@ -8,6 +8,28 @@
     <p class="subtitulo">Atualize seus dados de acesso e preferências.</p>
   </div>
 </div>
+
+<section class="cartao perfil">
+  {{ avatar(g.user, 88) }}
+  <div class="perfil-info">
+    <strong>{{ g.user.nome or 'Sem nome' }}</strong>
+    <span class="muted">{{ g.user.email }}</span>
+  </div>
+  <div class="acoes">
+    <form method="post" action="{{ url_for('enviar_foto') }}" enctype="multipart/form-data" data-foto-form>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="btn btn-sec">{{ icone('camera', 16) }} {{ 'Trocar foto' if g.user.foto_tipo else 'Adicionar foto' }}
+        <input type="file" name="foto" accept="image/jpeg,image/png,image/webp" class="sr" data-foto-input></label>
+    </form>
+    {% if g.user.foto_tipo %}
+    <form method="post" action="{{ url_for('remover_foto') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-sec">Remover</button>
+    </form>
+    {% endif %}
+  </div>
+  <small class="muted perfil-dica">JPG, PNG ou WebP, até 2 MB.</small>
+</section>
 
 <div class="grade-2">
   <form method="post" class="cartao">

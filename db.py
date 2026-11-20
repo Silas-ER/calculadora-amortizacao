@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
     email         TEXT NOT NULL UNIQUE COLLATE NOCASE,
     nome          TEXT NOT NULL DEFAULT '',
     password_hash TEXT NOT NULL,
+    foto          BLOB,
+    foto_tipo     TEXT,
+    foto_versao   INTEGER NOT NULL DEFAULT 0,
     criado_em     TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -95,6 +98,10 @@ def _migrar(db):
         db.execute("ALTER TABLE usuarios RENAME COLUMN username TO email")
     if "nome" not in cols:
         db.execute("ALTER TABLE usuarios ADD COLUMN nome TEXT NOT NULL DEFAULT ''")
+    if "foto" not in cols:
+        db.execute("ALTER TABLE usuarios ADD COLUMN foto BLOB")
+        db.execute("ALTER TABLE usuarios ADD COLUMN foto_tipo TEXT")
+        db.execute("ALTER TABLE usuarios ADD COLUMN foto_versao INTEGER NOT NULL DEFAULT 0")
     cols = _colunas(db, "financiamentos")
     if "prazo_original" not in cols:
         db.execute("ALTER TABLE financiamentos ADD COLUMN prazo_original INTEGER NOT NULL DEFAULT 0")

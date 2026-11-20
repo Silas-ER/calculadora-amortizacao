@@ -49,6 +49,20 @@
       + 'O cálculo usa os dados do contrato salvo e recalcula as parcelas futuras.')) e.preventDefault();
   }));
 
+  // menu da conta (avatar): fecha ao clicar fora ou com Esc
+  const menuConta = document.querySelector('[data-menu-conta]');
+  if (menuConta) {
+    document.addEventListener('click', (e) => { if (!menuConta.contains(e.target)) menuConta.open = false; });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && menuConta.open) { menuConta.open = false; menuConta.querySelector('summary').focus(); }
+    });
+  }
+
+  // envia a foto de perfil assim que for escolhida
+  document.querySelectorAll('[data-foto-input]').forEach((i) => i.addEventListener('change', () => {
+    if (i.files[0]) i.closest('form').submit();
+  }));
+
   // nome do arquivo escolhido no upload
   document.querySelectorAll('[data-arquivo]').forEach((i) => i.addEventListener('change', () => {
     const alvo = i.closest('label').querySelector('[data-nome-arquivo]');

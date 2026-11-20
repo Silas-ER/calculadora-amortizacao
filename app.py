@@ -73,7 +73,8 @@ app.jinja_env.globals["csrf_token"] = csrf_token
 def antes():
     db = get_db()
     uid = session.get("usuario_id")
-    g.user = db.execute("SELECT id, email, nome FROM usuarios WHERE id = ?", (uid,)).fetchone() if uid else None
+    g.user = db.execute("SELECT id, email, nome, foto_tipo, foto_versao FROM usuarios WHERE id = ?",
+                        (uid,)).fetchone() if uid else None
     if request.method == "POST":
         token = session.get("_csrf")
         if not token or not secrets.compare_digest(token, request.form.get("csrf_token", "")):
@@ -290,6 +291,62 @@ def conta():
                 flash("Senha alterada.", "ok")
                 return redirect(url_for("conta"))
     return render_template("conta.html", pagina="Minha conta")
+
+
+FOTO_MAX = 2 * 1024 * 1024
+
+
+def _tipo_imagem(dados):
+    """Identifica a imagem pelo conteúdo, não pela extensão."""
+    if dados.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if dados.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if dados[:4] == b"RIFF" and dados[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+@app.get("/conta/foto")
+@login_required
+def foto():
+    u = get_db().execute("SELECT foto, foto_tipo FROM usuarios WHERE id = ?", (g.user["id"],)).fetchone()
+    if not u["foto"]:
+        abort(404)
+    return Response(u["foto"], mimetype=u["foto_tipo"],
+                    headers={"Cache-Control": "private, max-age=31536000", "X-Content-Type-Options": "nosniff"})
+
+
+@app.post("/conta/foto")
+@login_required
+def enviar_foto():
+    arq = request.files.get("foto")
+    dados = arq.read(FOTO_MAX + 1) if arq and arq.filename else b""
+    tipo = _tipo_imagem(dados)
+    if not dados:
+        flash("Selecione uma imagem.", "erro")
+    elif len(dados) > FOTO_MAX:
+        flash("A foto deve ter até 2 MB.", "erro")
+    elif not tipo:
+        flash("Envie uma imagem JPG, PNG ou WebP.", "erro")
+    else:
+        db = get_db()
+        db.execute("UPDATE usuarios SET foto = ?, foto_tipo = ?, foto_versao = foto_versao + 1 WHERE id = ?",
+                   (dados, tipo, g.user["id"]))
+        db.commit()
+        flash("Foto atualizada.", "ok")
+    return redirect(url_for("conta"))
+
+
+@app.post("/conta/foto/remover")
+@login_required
+def remover_foto():
+    db = get_db()
+    db.execute("UPDATE usuarios SET foto = NULL, foto_tipo = NULL, foto_versao = foto_versao + 1 WHERE id = ?",
+               (g.user["id"],))
+    db.commit()
+    flash("Foto removida.", "ok")
+    return redirect(url_for("conta"))
 
 
 @app.post("/conta/excluir")

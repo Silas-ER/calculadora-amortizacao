@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_icones.html" import icone %}
+{% from "_icones.html" import icone, avatar %}
 {% block body_class %}layout-app{% endblock %}
 {% block body %}
 {% set f = g.fin_nav %}
@@ -39,10 +39,6 @@
 
   <div class="lat-rodape">
     <a href="{{ url_for('ajuda') }}" {% if pagina == 'Central de ajuda' %}class="ativo"{% endif %}>{{ icone('ajuda', 16) }} Central de ajuda</a>
-    <form method="post" action="{{ url_for('logout') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button>Sair da conta {{ icone('seta', 14) }}</button>
-    </form>
   </div>
 </aside>
 
@@ -53,12 +49,27 @@
       <a href="{{ url_for('index') }}">Meu financiamento</a><span>/</span><strong>{{ pagina }}</strong>
     </nav>
     <div class="topo-dir">
-      <button class="tema-btn" type="button" data-tema-btn>
-        <span class="so-claro">{{ icone('sol', 16) }} Claro</span><span class="so-escuro">{{ icone('lua', 16) }} Escuro</span>
-        {{ icone('chevron', 14) }}
+      <button class="icone-btn" type="button" data-tema-btn aria-label="Alternar tema claro/escuro">
+        <span class="so-claro">{{ icone('sol', 18) }}</span><span class="so-escuro">{{ icone('lua', 18) }}</span>
+        <span class="dica" role="tooltip"><span class="so-claro">Mudar para tema escuro</span><span class="so-escuro">Mudar para tema claro</span></span>
       </button>
-      <a class="usuario {% if pagina == 'Minha conta' %}ativo{% endif %}" href="{{ url_for('conta') }}" title="Minha conta">
-        <strong>{{ g.user.nome or g.user.email }}</strong><small>Conta pessoal</small></a>
+      <details class="menu-conta" data-menu-conta>
+        <summary class="avatar-link {% if pagina == 'Minha conta' %}ativo{% endif %}" aria-label="Menu da conta">
+          {{ avatar(g.user, 40) }}
+          <span class="dica" role="tooltip">Minha conta</span>
+        </summary>
+        <div class="menu-pop" role="menu">
+          <div class="menu-cab">
+            {{ avatar(g.user, 40) }}
+            <div><strong>{{ g.user.nome or 'Minha conta' }}</strong><small>{{ g.user.email }}</small></div>
+          </div>
+          <a href="{{ url_for('conta') }}" role="menuitem">{{ icone('usuario', 16) }} Minha conta</a>
+          <form method="post" action="{{ url_for('logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button role="menuitem">{{ icone('seta', 16) }} Sair da conta</button>
+          </form>
+        </div>
+      </details>
     </div>
   </header>
 
