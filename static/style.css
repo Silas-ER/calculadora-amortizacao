@@ -175,7 +175,16 @@ fieldset .segmentado label span { min-width: 0; }
   font: inherit; font-size: .88rem; color: var(--txt-2); cursor: pointer; min-width: 114px; }
 .tema-btn span { display: inline-flex; gap: 8px; align-items: center; }
 [data-tema="escuro"] .so-claro, :root:not([data-tema="escuro"]) .so-escuro { display: none !important; }
-.menu-btn { display: none; background: none; border: 0; color: var(--txt); cursor: pointer; padding: 4px; }
+.icone-btn.menu-btn { margin-left: -8px; background: transparent; }
+.icone-btn.menu-btn:hover { background: var(--sup-2); }
+.dica.dica-esq { left: 0; right: auto; }
+.dica.dica-esq::before { left: 14px; right: auto; }
+[data-menu="oculto"] .so-menu-visivel, :root:not([data-menu="oculto"]) .so-menu-oculto { display: none; }
+@media (min-width: 861px) {
+  .lateral { transition: margin-left .2s ease; }
+  [data-menu="oculto"] .lateral { margin-left: -248px; visibility: hidden; transition: margin-left .2s ease, visibility 0s .2s; }
+}
+@media (prefers-reduced-motion: reduce) { .lateral { transition: none !important; } }
 .conteudo { padding: 32px; max-width: 1240px; width: 100%; }
 
 /* ================================================================ componentes */
@@ -415,7 +424,8 @@ fieldset .segmentado label span { min-width: 0; }
 @media (max-width: 860px) {
   .lateral { position: fixed; z-index: 20; left: 0; transform: translateX(-100%); transition: transform .2s; }
   .lateral.aberta { transform: none; box-shadow: 0 0 0 100vmax rgba(0,0,0,.4); }
-  .menu-btn { display: inline-flex; }
+  .so-menu-visivel, .so-menu-oculto { display: none !important; }
+  .menu-btn .dica::after { content: "Abrir menu"; }
   .topo { padding: 0 16px; }
   .topo-dir { gap: 14px; }
   .trilha a, .trilha span { display: none; }

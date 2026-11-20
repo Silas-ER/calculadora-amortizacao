@@ -9,11 +9,20 @@
     document.dispatchEvent(new CustomEvent('tema-mudou'));
   }));
 
-  // menu lateral no celular
+  // menu lateral: no computador oculta/mostra (e lembra a escolha); no celular abre por cima
   const lateral = document.getElementById('lateral');
+  const celular = window.matchMedia('(max-width: 860px)');
   document.querySelectorAll('[data-abre-menu]').forEach((b) => b.addEventListener('click', (e) => {
     e.stopPropagation();
-    lateral && lateral.classList.toggle('aberta');
+    if (!lateral) return;
+    if (celular.matches) {
+      lateral.classList.toggle('aberta');
+    } else {
+      const novo = raiz.dataset.menu === 'oculto' ? 'visivel' : 'oculto';
+      raiz.dataset.menu = novo;
+      localStorage.setItem('menu', novo);
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 220); // redesenha o gráfico na nova largura
+    }
   }));
   document.addEventListener('click', (e) => {
     if (lateral && lateral.classList.contains('aberta') && !lateral.contains(e.target)) lateral.classList.remove('aberta');

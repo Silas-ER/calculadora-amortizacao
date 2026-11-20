@@ -44,7 +44,10 @@
 
 <div class="principal">
   <header class="topo">
-    <button class="menu-btn" type="button" data-abre-menu aria-label="Abrir menu">{{ icone('menu') }}</button>
+    <button class="icone-btn menu-btn" type="button" data-abre-menu aria-controls="lateral" aria-label="Ocultar ou mostrar menu">
+      {{ icone('painel', 18) }}
+      <span class="dica dica-esq" role="tooltip"><span class="so-menu-visivel">Ocultar menu</span><span class="so-menu-oculto">Mostrar menu</span></span>
+    </button>
     <nav class="trilha" aria-label="Você está em">
       <a href="{{ url_for('index') }}">Meu financiamento</a><span>/</span><strong>{{ pagina }}</strong>
     </nav>
