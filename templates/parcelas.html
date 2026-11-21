@@ -12,24 +12,20 @@
 </div>
 
 <div class="linha-controles">
-  <div class="segmentado" role="tablist" aria-label="Sistema de amortização">
-    <a href="{{ url_for('parcelas', fid=fin.id, sistema='SAC') }}" role="tab" {% if sistema == 'SAC' %}class="ativo" aria-selected="true"{% endif %}>SAC</a>
-    <a href="{{ url_for('parcelas', fid=fin.id, sistema='PRICE') }}" role="tab" {% if sistema == 'PRICE' %}class="ativo" aria-selected="true"{% endif %}>Price</a>
-  </div>
+  <span class="sistema-tag">{{ 'SAC' if sistema == 'SAC' else 'Price' }}</span>
   <span class="muted">{{ SISTEMA_DESC[sistema] }} • {{ fin.taxa_mensal|pct }} a.m. • {{ resumo.total }} meses</span>
+  <span class="links-sistema">
+    <a class="btn-link" href="{{ url_for('editar', fid=fin.id) }}">{{ icone('lapis', 14) }} Alterar sistema</a>
+    <a class="btn-link" href="{{ url_for('simulador', de=fin.id) }}">{{ icone('troca', 14) }} Comparar SAC e Price</a>
+  </span>
 </div>
-{% if simulado %}
-<div class="alerta info">Simulação: seu contrato é <strong>{{ 'SAC' if fin.sistema == 'SAC' else 'Price' }}</strong>. Esta tabela mostra como seria o mesmo financiamento em {{ 'SAC' if sistema == 'SAC' else 'Price' }}, sem as amortizações extras{% if est.tr %} e sem TR{% endif %}.</div>
-{% endif %}
 {% include "_aviso_tr.html" %}
 {% if com_tr %}
 <div class="nota-faixa"><strong class="nota-rot">TR</strong> O saldo é corrigido pela TR publicada pelo Banco Central{% if est.tr.ultima %} (última: {{ est.tr.ultima|data_longa }}){% endif %}.
   Valores com ≈ usam a projeção: {% if fin.projecao_tr == 'zero' %}TR zero{% else %}média de 12 meses, {{ est.tr.media|pct(4) }} a.m{% endif %}.</div>
 {% endif %}
-{% if not simulado %}
 <div class="nota-faixa"><strong class="nota-rot">Dica</strong> Use {{ icone('lapis', 13) }} para informar a prestação ou o saldo de uma parcela como estão no extrato: as parcelas seguintes são recalculadas a partir dela.
   Valores informados aparecem com <span class="marca-extrato">*</span>.</div>
-{% endif %}
 
 <div class="cartao resumo">
   <div><span>Total financiado</span><strong>{{ resumo.financiado|brl }}</strong></div>
@@ -60,7 +56,7 @@
       <th>Parcela</th><th>Vencimento</th><th class="n">Prestação</th><th class="n">Amortização</th>
       <th class="n">Juros</th>{% if fin.encargos_mensais %}<th class="n">Seguros/taxas</th>{% endif %}
       {% if com_tr %}<th class="n">Correção TR</th>{% endif %}
-      <th class="n">Saldo devedor</th><th>Status</th>{% if not simulado %}<th><span class="sr">Ações</span></th>{% endif %}
+      <th class="n">Saldo devedor</th><th>Status</th><th><span class="sr">Ações</span></th>
     </tr></thead>
     <tbody>
     {% for l in linhas %}
@@ -75,7 +71,6 @@
       {% if com_tr %}<td class="n muted" {% if l.tr_projetada %}title="TR ainda não publicada: valor projetado"{% elif l.extrato %}title="Correção ajustada para bater com o extrato"{% endif %}>{% if l.tr_projetada %}≈ {% endif %}{{ l.correcao|num_br(2) }}</td>{% endif %}
       <td class="n forte">{% if ex.saldo %}<span class="marca-extrato" title="Valor informado do extrato">*</span>{% endif %}{{ l.saldo_devedor|num_br(2) }}</td>
       <td><span class="pilula {{ l.status }}">{% if l.status == 'paga' %}{{ icone('check', 12) }} Paga{% elif l.status == 'proxima' %}• Próxima{% else %}• Prevista{% endif %}</span></td>
-      {% if not simulado %}
       <td class="acoes-linha">
         {% if l.pode_pagar %}
         <form method="post" action="{{ url_for('marcar_paga', fid=fin.id, numero=l.numero) }}"
@@ -97,7 +92,6 @@
                 data-paga="{{ 1 if l.status == 'paga' else 0 }}" data-ajustada="{{ 1 if l.extrato else 0 }}">{{ icone('lapis', 14) }}</button>
         {% endif %}
       </td>
-      {% endif %}
     </tr>
     {% else %}
     <tr><td colspan="10" class="vazio-tabela">Nenhuma parcela encontrada.</td></tr>
@@ -117,7 +111,6 @@
   </div>
 </section>
 
-{% if not simulado %}
 <dialog class="dialogo" id="dlg-parcela" aria-labelledby="dlg-titulo">
   <form method="post" data-form-parcela>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -135,7 +128,6 @@
     <button class="btn-link" name="acao" value="remover" data-so-ajustada formnovalidate>{{ icone('desfazer', 14) }} Descartar valores do extrato e usar os calculados</button>
   </form>
 </dialog>
-{% endif %}
 
 <div class="nota-faixa"><strong class="nota-rot">SAC ou Price?</strong> No SAC, as parcelas diminuem. Na Price, a prestação é constante, sem considerar taxas e correções.</div>
 {% endblock %}

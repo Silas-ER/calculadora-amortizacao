@@ -382,6 +382,9 @@ fieldset .segmentado label span { min-width: 0; }
 .btn-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; padding: 0; border: 0; background: none;
   color: var(--acento); font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; }
 .btn-link:hover { text-decoration: underline; }
+.sistema-tag { padding: 6px 16px; border-radius: 8px; background: var(--sup-2); color: var(--acento); font-weight: 600; }
+.links-sistema { display: inline-flex; gap: 18px; margin-left: auto; }
+.links-sistema .btn-link { margin-top: 0; text-decoration: none; }
 .pilula { display: inline-flex; align-items: center; gap: 4px; font-size: .72rem; font-weight: 500; padding: 4px 12px; border-radius: 6px; background: var(--sup-2); color: var(--muted); white-space: nowrap; }
 .pilula.proxima { background: var(--suave); color: var(--acento); }
 .pilula.paga { background: transparent; color: var(--acento); padding-left: 0; }

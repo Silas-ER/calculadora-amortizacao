@@ -753,29 +753,21 @@ POR_PAGINA = 12
 def parcelas(fid):
     fin = get_fin(fid)
     est = carregar_estado(fin)
-    sistema = request.args.get("sistema", fin["sistema"]).upper()
-    if sistema not in ("SAC", "PRICE"):
-        sistema = fin["sistema"]
-    simulado = sistema != fin["sistema"]
-    if simulado:
-        linhas = fz.gerar_tabela(fin["valor_financiado"], fin["taxa_mensal"], fin["prazo_original"], sistema,
-                                 date.fromisoformat(fin["data_primeira"]), fin["encargos_mensais"])
-        extras = 0.0
-    else:
-        linhas = est["linhas"]
-        extras = sum(a["valor"] for a in est["amortizacoes"])
+    # a planilha mostra sempre o sistema do contrato; trocar SAC/Price é feito em "Editar contrato"
+    linhas = est["linhas"]
+    extras = sum(a["valor"] for a in est["amortizacoes"])
     k = fin["parcelas_pagas"]
-    com_tr = bool(est["tr"]) and not simulado
+    com_tr = bool(est["tr"])
     conhecidos = est["tr"]["conhecidos"] if com_tr else 0
     hoje = date.today().isoformat()
     for l in linhas:
         l["status"] = "paga" if l["numero"] <= k else ("proxima" if l["numero"] == k + 1 else "prevista")
-        l["extrato"] = not simulado and est["ajustes"].get(l["numero"])
+        l["extrato"] = est["ajustes"].get(l["numero"])
         l["tr_projetada"] = com_tr and not l["extrato"] and l["numero"] > k + conhecidos
-        l["editavel"] = not simulado and l["numero"] > est["minimo_edicao"]
+        l["editavel"] = l["numero"] > est["minimo_edicao"]
         # marcar como paga: parcelas vencidas e a próxima; desmarcar: só a última paga
-        l["pode_pagar"] = not simulado and l["numero"] > k and (l["data_vencimento"] <= hoje or l["numero"] == k + 1)
-        l["pode_desfazer"] = not simulado and l["numero"] == k and k > est["minimo_edicao"]
+        l["pode_pagar"] = l["numero"] > k and (l["data_vencimento"] <= hoje or l["numero"] == k + 1)
+        l["pode_desfazer"] = l["numero"] == k and k > est["minimo_edicao"]
 
     resumo = {"financiado": fin["valor_financiado"], "juros": sum(l["juros"] for l in linhas),
               "custo": sum(l["valor_parcela"] for l in linhas) + extras, "pagas": min(k, len(linhas)),
@@ -794,7 +786,7 @@ def parcelas(fid):
         pagina = idx // POR_PAGINA + 1
     pagina = max(1, min(pagina, total_pag))
     ini = (pagina - 1) * POR_PAGINA
-    return render_template("parcelas.html", fin=fin, est=est, sistema=sistema, simulado=simulado, resumo=resumo,
+    return render_template("parcelas.html", fin=fin, est=est, sistema=fin["sistema"], resumo=resumo,
                            linhas=filtradas[ini:ini + POR_PAGINA], ini=ini, n_filtradas=len(filtradas),
                            pag=pagina, total_pag=total_pag, status=status, q=q, com_tr=com_tr,
                            pagina="Planilha de parcelas")
