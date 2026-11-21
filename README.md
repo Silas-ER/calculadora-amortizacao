@@ -50,7 +50,7 @@ Para enviar e-mails de verdade, defina as variáveis de ambiente:
 
 ```powershell
 $env:SMTP_HOST = "smtp.seuprovedor.com"; $env:SMTP_PORT = "587"
-$env:SMTP_USER = "usuario"; $env:SMTP_PASSWORD = "senha"; $env:SMTP_FROM = "habita <nao-responda@seudominio.com>"
+$env:SMTP_USER = "usuario"; $env:SMTP_PASSWORD = "senha"; $env:SMTP_FROM = "amortiza <nao-responda@seudominio.com>"
 ```
 
 ## Produção

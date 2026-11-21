@@ -123,7 +123,9 @@ fieldset .segmentado label span { min-width: 0; }
 /* ================================================================ login / cadastro */
 .layout-auth { background: var(--sup); }
 .auth-pagina { max-width: 520px; margin: 0 auto; padding: 0 24px; min-height: 100vh; display: flex; flex-direction: column; }
-.auth-topo { display: flex; justify-content: flex-end; align-items: center; gap: 22px; padding: 52px 0 0; font-size: .9rem; color: var(--muted); }
+.auth-topo { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px 22px; padding: 52px 0 0; font-size: .9rem; color: var(--muted); }
+.auth-marca { display: flex; align-items: center; gap: 10px; color: var(--txt); text-decoration: none; font-size: 1.25rem; font-weight: 700; letter-spacing: -.02em; }
+.auth-acoes { display: flex; align-items: center; gap: 22px; }
 .auth-main { flex: 1; padding: 150px 0 60px; }
 .auth-main .sobretitulo { margin-bottom: 20px; }
 .auth-titulo { font-size: 2.35rem; font-weight: 600; letter-spacing: -.025em; margin-bottom: 0; line-height: 1.35; }
@@ -144,6 +146,9 @@ fieldset .segmentado label span { min-width: 0; }
 .lateral { width: 248px; flex-shrink: 0; background: var(--l-bg); color: var(--l-txt); padding: 36px 16px 28px; display: flex; flex-direction: column;
   position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .logo { display: block; color: #fff; text-decoration: none; font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; padding: 0 12px; margin-bottom: 44px; }
+.logo { display: flex; align-items: center; gap: 10px; padding: 0 8px !important; }
+.logo img { flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; }
+.logo small { white-space: nowrap; font-size: .58rem !important; letter-spacing: .04em !important; }
 .logo small { display: block; font-size: .62rem; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--l-muted); margin-top: 4px; }
 .lat-titulo { font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--l-muted); padding: 0 12px; margin: 0 0 12px; }
 .lat-nav { display: flex; flex-direction: column; gap: 4px; }

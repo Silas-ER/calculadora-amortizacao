@@ -215,7 +215,7 @@ def esqueci_senha():
             db.commit()
             link = url_for("redefinir_senha", token=token, _external=True)
             try:
-                enviar_email(u["email"], "Redefinição de senha · habita",
+                enviar_email(u["email"], "Redefinição de senha · amortiza",
                              f"Recebemos um pedido para redefinir sua senha.\n\nAcesse o link abaixo (válido por 1 hora):\n{link}\n\n"
                              "Se não foi você, ignore este e-mail.")
             except (OSError, smtplib.SMTPException):
@@ -255,6 +255,11 @@ def privacidade():
 @app.route("/termos")
 def termos():
     return render_template("termos.html", pagina="Termos de uso")
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return app.send_static_file("favicon.ico")
 
 
 @app.route("/conta", methods=["GET", "POST"])

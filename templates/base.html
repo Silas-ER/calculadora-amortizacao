@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}{{ pagina or 'habita' }}{% endblock %} · habita</title>
+  <title>{% block title %}{{ pagina or 'amortiza' }}{% endblock %} · amortiza</title>
   <script>
     document.documentElement.dataset.tema = localStorage.getItem('tema') || 'claro';
     document.documentElement.dataset.menu = localStorage.getItem('menu') || 'visivel';
@@ -12,6 +12,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="48x48">
+  <link rel="icon" href="{{ url_for('static', filename='icone.svg') }}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+  <meta name="theme-color" content="#13806F">
 </head>
 <body class="{% block body_class %}{% endblock %}">
 {% block body %}{% endblock %}
