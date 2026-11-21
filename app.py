@@ -832,26 +832,14 @@ def aviso_5_anos(fin, sim):
     return fz.termina_antes_de(sim["nova"], limite)
 
 
-@app.route("/financiamentos/<int:fid>/recomendacao", methods=["GET", "POST"])
+@app.route("/financiamentos/<int:fid>/recomendacao")
 @login_required
 def recomendacao(fid):
     fin = get_fin(fid)
     est = carregar_estado(fin)
     momento = fz.momento_amortizacao(est["ctx"]) if est["ctx"] else None
-    form = {"caixa": "", "despesas": "", "meses_reserva": "6", "rend": "", "renda": ""}
-    rec = None
-    if request.method == "POST" and est["ctx"]:
-        form.update({k: request.form.get(k, "").strip() for k in form})
-        caixa, despesas, rend, meses = num("caixa"), num("despesas"), num("rend"), num("meses_reserva", 6)
-        if caixa is None or despesas is None or rend is None:
-            flash("Preencha dinheiro disponível, despesas mensais e rendimento do investimento.", "erro")
-        elif caixa < 0 or despesas < 0 or meses < 0 or meses > 60:
-            flash("Confira os valores informados.", "erro")
-        else:
-            rec = fz.recomendar(est["ctx"], caixa, despesas, int(meses), rend / 100, num("renda"))
-    aviso5 = aviso_5_anos(fin, rec["simulacoes"].get(rec["modalidade"])) if rec and rec.get("simulacoes") else None
 
-    # amortizar ou investir? (formulário GET, independente do de cima)
+    # amortizar ou investir?
     tr_mensal = est["tr"]["media"] if est["tr"] and fin["projecao_tr"] == "media12" else 0.0
     comp_form = {"valor": request.args.get("cv", ""), "taxa": request.args.get("ct", ""),
                  "tipo": request.args.get("ctipo", "bruta"), "anos": request.args.get("ca", "5")}
@@ -864,9 +852,8 @@ def recomendacao(fid):
             comp = fz.amortizar_ou_investir(fin["taxa_mensal"], tr_mensal, min(v, est["saldo"]), t / 100,
                                             "liquida" if comp_form["tipo"] == "liquida" else "bruta", int(a))
             comp["limitado"] = v > est["saldo"]
-    return render_template("recomendacao.html", fin=fin, est=est, form=form, rec=rec, momento=momento,
-                           aviso5=aviso5, comp=comp, comp_form=comp_form, tr_mensal=tr_mensal,
-                           pagina="Devo amortizar?")
+    return render_template("recomendacao.html", fin=fin, est=est, momento=momento, comp=comp, comp_form=comp_form,
+                           tr_mensal=tr_mensal, pagina="Devo amortizar?")
 
 
 @app.post("/financiamentos/<int:fid>/amortizacoes/registrar")
