@@ -335,6 +335,29 @@ fieldset .segmentado label span { min-width: 0; }
 .tabela-momento th:first-child { text-transform: none; letter-spacing: 0; font-size: .8rem; color: var(--txt-2); }
 .momento-nota { margin-top: 12px; }
 .titulo-secao { font-size: 1.15rem; margin: 32px 0 14px; }
+
+/* amortizar x investir */
+.taxas-hoje { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; padding: 10px 14px; border-radius: 8px;
+  background: var(--sup-2); font-size: .88rem; margin: 4px 0 18px; font-variant-numeric: tabular-nums; }
+.taxas-hoje strong { color: var(--muted); font-weight: 500; margin-right: 4px; }
+.taxas-hoje small { color: var(--muted); font-size: .75rem; margin-left: auto; }
+.rende-campo select { border: 0; background: transparent; color: var(--txt-2); font: inherit; font-size: .88rem; padding-right: 4px; cursor: pointer; }
+.atalhos { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 18px; }
+.chip { border: 1px solid var(--borda); background: var(--sup); color: var(--txt-2); border-radius: 999px; padding: 5px 12px;
+  font: inherit; font-size: .78rem; cursor: pointer; }
+.chip:hover, .chip.ativo { border-color: var(--acento); color: var(--acento); }
+.comparativo-barras { display: flex; flex-direction: column; gap: 14px; margin: 4px 0 20px; }
+.cb-linha { display: grid; grid-template-columns: 150px 1fr auto; gap: 14px; align-items: center; }
+.cb-rot { font-size: .9rem; font-weight: 600; color: var(--p-txt); }
+.cb-rot small { display: block; font-size: .72rem; font-weight: 400; color: var(--p-muted); }
+.cb-barra { height: 14px; background: var(--p-caixa); border-radius: 4px; overflow: hidden; }
+.cb-barra i { display: block; height: 100%; border-radius: 0 4px 4px 0; min-width: 3px; }
+.cb-a { background: #A7C7C0; }
+.cb-i { background: var(--p-acento); }
+.cb-linha strong { font-variant-numeric: tabular-nums; color: var(--p-txt); font-size: .95rem; }
+.painel-explica { color: var(--p-muted); font-size: .88rem; line-height: 1.6; margin: 0 0 20px; }
+.painel-explica strong { color: var(--p-txt); }
+@media (max-width: 560px) { .cb-linha { grid-template-columns: 1fr auto; } .cb-barra { grid-column: 1 / -1; grid-row: 2; } }
 @media (max-width: 900px) { .momento-kpis { grid-template-columns: 1fr; } .momento .cartao-cab { flex-direction: column; } }
 .dialogo { border: 0; border-radius: 16px; padding: 28px; width: min(540px, calc(100vw - 32px)); background: var(--sup); color: var(--txt);
   box-shadow: 0 20px 60px rgba(0,0,0,.25); }

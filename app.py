@@ -841,19 +841,31 @@ def recomendacao(fid):
 
     # amortizar ou investir?
     tr_mensal = est["tr"]["media"] if est["tr"] and fin["projecao_tr"] == "media12" else 0.0
-    comp_form = {"valor": request.args.get("cv", ""), "taxa": request.args.get("ct", ""),
-                 "tipo": request.args.get("ctipo", "bruta"), "anos": request.args.get("ca", "5")}
+    mercado = indices.taxas_mercado(get_db()) if est["ctx"] else None
+    comp_form = {"valor": request.args.get("cv", ""), "forma": request.args.get("cforma", "cdi"),
+                 "taxa": request.args.get("ct", "100,00"), "tipo": request.args.get("ctipo", "bruta"),
+                 "anos": request.args.get("ca", "5")}
+    if comp_form["forma"] not in ("cdi", "fixa"):
+        comp_form["forma"] = "cdi"
     comp = None
-    if est["ctx"] and (comp_form["valor"] or comp_form["taxa"]):
+    if est["ctx"] and "cv" in request.args:
         v, t, a = fz.parse_num(comp_form["valor"]), fz.parse_num(comp_form["taxa"]), fz.parse_num(comp_form["anos"])
-        if not v or v <= 0 or t is None or t < 0 or t > 100 or not a or not 1 <= a <= 50 or a != int(a):
-            flash("Para comparar, informe o valor, a taxa do investimento e um prazo entre 1 e 50 anos.", "erro")
+        limite_taxa = 300 if comp_form["forma"] == "cdi" else 100
+        if not v or v <= 0 or t is None or t < 0 or t > limite_taxa or not a or not 1 <= a <= 50 or a != int(a):
+            flash("Para comparar, informe o valor, o rendimento do investimento e um prazo entre 1 e 50 anos.", "erro")
+        elif comp_form["forma"] == "cdi" and not mercado["cdi"]:
+            flash("Não conseguimos o CDI no Banco Central agora. Informe o rendimento em % ao ano.", "erro")
         else:
-            comp = fz.amortizar_ou_investir(fin["taxa_mensal"], tr_mensal, min(v, est["saldo"]), t / 100,
+            taxa_aa = mercado["cdi"] * t / 100 if comp_form["forma"] == "cdi" else t
+            comp = fz.amortizar_ou_investir(fin["taxa_mensal"], tr_mensal, min(v, est["saldo"]), taxa_aa / 100,
                                             "liquida" if comp_form["tipo"] == "liquida" else "bruta", int(a))
             comp["limitado"] = v > est["saldo"]
+            comp["pct_cdi"] = t if comp_form["forma"] == "cdi" else None
+            # empate também em % do CDI, que é como os bancos oferecem CDB
+            # taxa_empate é fração (0,088) e o CDI vem em % (13,65): 8,8 / 13,65 ≈ 64% do CDI
+            comp["empate_cdi"] = comp["taxa_empate"] * 100 / mercado["cdi"] * 100 if mercado["cdi"] else None
     return render_template("recomendacao.html", fin=fin, est=est, momento=momento, comp=comp, comp_form=comp_form,
-                           tr_mensal=tr_mensal, pagina="Devo amortizar?")
+                           tr_mensal=tr_mensal, mercado=mercado, pagina="Devo amortizar?")
 
 
 @app.post("/financiamentos/<int:fid>/amortizacoes/registrar")

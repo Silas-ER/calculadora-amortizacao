@@ -80,6 +80,16 @@
                                  ok: f.dataset.confirmaOk || (perigo ? 'Excluir' : 'Confirmar'), perigo });
     if (ok) { f.dataset.confirmado = '1'; f.requestSubmit(e.submitter || undefined); }
   }));
+  // atalhos que preenchem o rendimento (ex.: "CDB 100% do CDI"): forma|taxa|tipo
+  document.querySelectorAll('[data-preenche]').forEach((b) => b.addEventListener('click', () => {
+    const form = b.closest('form');
+    const [forma, taxa, tipo] = b.dataset.preenche.split('|');
+    form.querySelector('[name="cforma"]').value = forma;
+    form.querySelector('[name="ct"]').value = taxa;
+    form.querySelector(`[name="ctipo"][value="${tipo}"]`).checked = true;
+    form.querySelectorAll('[data-preenche]').forEach((x) => x.classList.toggle('ativo', x === b));
+  }));
+
   // seletor que leva para outra página (ex.: escolher o contrato na simulação)
   document.querySelectorAll('select[data-navegar]').forEach((s) => s.addEventListener('change', () => {
     window.location.href = s.value;

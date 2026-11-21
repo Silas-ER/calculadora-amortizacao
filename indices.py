@@ -101,6 +101,61 @@ def atualizar(db, desde: date):
     return {"ok": erro is None, "erro": erro, "ultima": ultima}
 
 
+# ---------------------------------------------------------------- Selic e CDI (para comparar com investimentos)
+
+SERIE_SELIC_META = 432   # meta Selic definida pelo Copom, % a.a.
+SERIE_CDI = 4389         # CDI anualizado base 252, % a.a. (referência dos CDBs "% do CDI")
+URL_ULTIMOS = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.{serie}/dados/ultimos/10?formato=json"
+
+
+def _ultimo_valor(serie):
+    """Último valor publicado da série até hoje: (valor em %, data ISO)."""
+    req = urllib.request.Request(URL_ULTIMOS.format(serie=serie),
+                                 headers={"User-Agent": "Amortiza/1.0", "Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            dados = json.load(r)
+    except urllib.error.HTTPError as e:
+        raise TRIndisponivel(f"Banco Central respondeu {e.code}") from e
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
+        raise TRIndisponivel(str(e)) from e
+    hoje = date.today().isoformat()
+    # a meta Selic vem com datas futuras (vale até a próxima reunião do Copom): fica só o que já vigora
+    pontos = sorted((datetime.strptime(d["data"], "%d/%m/%Y").date().isoformat(), float(d["valor"])) for d in dados)
+    validos = [p for p in pontos if p[0] <= hoje] or pontos
+    if not validos:
+        raise TRIndisponivel("série sem dados")
+    data, valor = validos[-1]
+    return valor, data
+
+
+def taxas_mercado(db):
+    """Selic meta e CDI atuais (% a.a.), consultados no máximo 1x por dia e guardados no SQLite.
+
+    Retorna {"selic", "selic_data", "cdi", "cdi_data", "erro"} — valores None se nunca foi possível consultar.
+    """
+    salvo = json.loads(_meta(db, "mercado") or "{}")
+    hoje, agora = date.today().isoformat(), datetime.now()
+    erro = None
+    if salvo.get("checado") != hoje:
+        falha = _meta(db, "mercado_falha")
+        if falha and agora - datetime.fromisoformat(falha) < ESPERA_APOS_FALHA:
+            erro = "Banco Central indisponível no momento"
+        else:
+            try:
+                selic, selic_data = _ultimo_valor(SERIE_SELIC_META)
+                cdi, cdi_data = _ultimo_valor(SERIE_CDI)
+                salvo = {"selic": selic, "selic_data": selic_data, "cdi": cdi, "cdi_data": cdi_data, "checado": hoje}
+                _meta(db, "mercado", json.dumps(salvo))
+                db.execute("DELETE FROM meta WHERE chave = 'mercado_falha'")
+            except TRIndisponivel as e:
+                _meta(db, "mercado_falha", agora.isoformat(timespec="seconds"))
+                erro = f"Não foi possível consultar a Selic no Banco Central ({e})"
+            db.commit()
+    return {"selic": salvo.get("selic"), "selic_data": salvo.get("selic_data"),
+            "cdi": salvo.get("cdi"), "cdi_data": salvo.get("cdi_data"), "erro": erro}
+
+
 class TabelaTR:
     """Consulta a TR em cache e projeta meses futuros."""
 

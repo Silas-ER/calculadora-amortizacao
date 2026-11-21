@@ -83,65 +83,102 @@
 
 <h2 class="titulo-secao" id="comparar">Amortizar ou investir?</h2>
 <div class="grade-sim">
-  <form method="get" class="cartao" action="{{ url_for('recomendacao', fid=fin.id) }}#comparar">
+  <form method="get" class="cartao" action="{{ url_for('recomendacao', fid=fin.id) }}#comparar" data-form-comparar>
     <h2>Compare com um investimento</h2>
     <p class="muted">Amortizar é como um investimento garantido e isento de IR, que rende exatamente o custo da sua dívida.</p>
+    {% if mercado and mercado.selic %}
+    <div class="taxas-hoje">
+      <span><strong>Selic</strong> {{ mercado.selic|num_br(2) }}% a.a.</span>
+      <span><strong>CDI</strong> {{ mercado.cdi|num_br(2) }}% a.a.</span>
+      <small>Banco Central, {{ mercado.cdi_data|data_longa }}{% if mercado.erro %} (valor salvo){% endif %}</small>
+    </div>
+    {% elif mercado and mercado.erro %}
+    <p class="muted mini-nota">Não foi possível consultar a Selic agora. Informe o rendimento em % ao ano.</p>
+    {% endif %}
     <div class="campos-2">
       <label class="campo">Valor que você tem
         <span class="com-prefixo"><i>R$</i><input name="cv" value="{{ comp_form.valor }}" data-mascara="moeda" required></span></label>
-      <label class="campo">Prazo da comparação
+      <label class="campo">Por quanto tempo
         <span class="com-sufixo"><input name="ca" value="{{ comp_form.anos }}" data-mascara="inteiro" required><i>anos</i></span></label>
-      <label class="campo">Rendimento do investimento
-        <span class="com-sufixo"><input name="ct" value="{{ comp_form.taxa }}" data-mascara="taxa" required><i>% a.a.</i></span></label>
-      <fieldset class="campo">
-        <legend>Essa taxa é</legend>
-        <div class="segmentado">
-          <label><input type="radio" name="ctipo" value="bruta" {% if comp_form.tipo != 'liquida' %}checked{% endif %}><span>Bruta</span></label>
-          <label><input type="radio" name="ctipo" value="liquida" {% if comp_form.tipo == 'liquida' %}checked{% endif %}><span>Líquida</span></label>
-        </div>
-      </fieldset>
     </div>
-    <p class="muted dica-campo"><strong>Bruta:</strong> CDB, Tesouro Direto e outros com IR (descontamos de 22,5% a 15%, conforme o prazo).
-      <strong>Líquida:</strong> LCI, LCA, poupança ou uma taxa que você já calculou sem IR.</p>
+    <label class="campo">Quanto o investimento rende
+      <span class="com-sufixo rende-campo"><input name="ct" value="{{ comp_form.taxa }}" data-mascara="taxa" required>
+        <select name="cforma" aria-label="Forma da taxa">
+          <option value="cdi" {% if comp_form.forma == 'cdi' %}selected{% endif %} {% if not (mercado and mercado.cdi) %}disabled{% endif %}>% do CDI</option>
+          <option value="fixa" {% if comp_form.forma == 'fixa' %}selected{% endif %}>% ao ano</option>
+        </select></span></label>
+    {% if mercado and mercado.cdi %}
+    <div class="atalhos" aria-label="Exemplos">
+      <button type="button" class="chip" data-preenche="cdi|100,00|bruta">CDB 100% do CDI</button>
+      <button type="button" class="chip" data-preenche="cdi|110,00|bruta">CDB 110% do CDI</button>
+      <button type="button" class="chip" data-preenche="fixa|{{ mercado.selic|num_br(2) }}|bruta">Tesouro Selic</button>
+      <button type="button" class="chip" data-preenche="cdi|90,00|liquida">LCI/LCA 90% do CDI</button>
+    </div>
+    {% endif %}
+    <fieldset class="campo">
+      <legend>Tem imposto de renda?</legend>
+      <div class="segmentado">
+        <label><input type="radio" name="ctipo" value="bruta" {% if comp_form.tipo != 'liquida' %}checked{% endif %}><span>Sim (CDB, Tesouro)</span></label>
+        <label><input type="radio" name="ctipo" value="liquida" {% if comp_form.tipo == 'liquida' %}checked{% endif %}><span>Não (LCI, LCA)</span></label>
+      </div>
+    </fieldset>
+    <p class="muted dica-campo">Com IR, descontamos o imposto no resgate: 22,5% até 6 meses, caindo até 15% acima de 2 anos.</p>
     <button class="btn btn-largo">Comparar {{ icone('seta', 16) }}</button>
   </form>
 
   <section class="painel-sim" aria-live="polite">
     {% if comp %}
+    {% set ganho_a, ganho_i = comp.ganho_amortizar, comp.ganho_investir %}
+    {% set maior = [ganho_a, ganho_i]|max %}
+    {% set anos_txt = comp.anos ~ (' ano' if comp.anos == 1 else ' anos') %}
     <div class="painel-cab">
-      <span class="sobretitulo">Em {{ comp.anos }} {{ 'ano' if comp.anos == 1 else 'anos' }}</span>
-      <span class="selo {{ 'selo-sim' if comp.vence == 'amortizar' else 'selo-nao' }}">{{ 'Amortizar' if comp.vence == 'amortizar' else 'Investir' }}</span>
+      <span class="sobretitulo">{{ comp.valor|brl }} por {{ anos_txt }}</span>
+      <span class="selo selo-sim">{{ 'Amortizar' if comp.vence == 'amortizar' else 'Investir' }}</span>
     </div>
-    <h2>{% if comp.vence == 'amortizar' %}Amortizar rende mais.{% else %}Investir rende mais.{% endif %}</h2>
-    <p class="painel-rot">Diferença a favor de {{ 'amortizar' if comp.vence == 'amortizar' else 'investir' }}</p>
-    <p class="painel-valor">{{ comp.diferenca|abs|brl }}</p>
-    <table class="painel-tab">
-      <thead><tr><th></th><th>Amortizar</th><th>Investir</th></tr></thead>
-      <tbody>
-        <tr><td>Rende ao ano</td><td>{{ comp.custo_divida|pct(2) }}</td><td>{{ comp.rend_liquido|pct(2) }}</td></tr>
-        <tr><td>Imposto de renda</td><td>Isento</td><td>{{ comp.ir|pct(1) if comp.ir else 'Isento' }}</td></tr>
-        <tr><td>{{ comp.valor|brl }} viram</td><td>{{ comp.amortizar_final|brl }}</td><td>{{ comp.investir_final|brl }}</td></tr>
-      </tbody>
-    </table>
+    <h2>{% if comp.vence == 'amortizar' %}Amortizar compensa mais.{% else %}Investir compensa mais.{% endif %}</h2>
+
+    <div class="comparativo-barras">
+      <div class="cb-linha">
+        <span class="cb-rot">Amortizar<small>juros{% if tr_mensal %} e TR{% endif %} que você deixa de pagar</small></span>
+        <div class="cb-barra"><i class="cb-a" style="width: {{ (ganho_a / maior * 100) if maior else 0 }}%"></i></div>
+        <strong>{{ ganho_a|brl }}</strong>
+      </div>
+      <div class="cb-linha">
+        <span class="cb-rot">Investir<small>rendimento{% if comp.ir %}, já sem o IR{% endif %}</small></span>
+        <div class="cb-barra"><i class="cb-i" style="width: {{ (ganho_i / maior * 100) if maior else 0 }}%"></i></div>
+        <strong>{{ ganho_i|brl }}</strong>
+      </div>
+    </div>
+
+    <p class="painel-explica">
+      Se você amortizar {{ comp.valor|brl }}, deixa de pagar <strong>{{ ganho_a|brl }}</strong> em {{ anos_txt }}: é como se esse
+      dinheiro rendesse <strong>{{ comp.custo_divida|pct(2) }} ao ano</strong>, sem risco e sem imposto.
+      Investido a {% if comp.pct_cdi is not none %}{{ comp.pct_cdi|num_br(0) }}% do CDI ({{ comp.taxa|pct(2) }} a.a.){% else %}{{ comp.taxa|pct(2) }} a.a.{% endif %},
+      ele renderia <strong>{{ ganho_i|brl }}</strong>{% if comp.ir %}, já descontado o IR de {{ comp.ir|pct(1) }}{% endif %}:
+      {{ comp.rend_liquido|pct(2) }} ao ano.
+      {% if comp.vence == 'investir' %}Como o investimento rende mais que o custo da dívida, <strong>investir sai {{ comp.diferenca|abs|brl }} na frente</strong>.
+      {% else %}Como a dívida custa mais do que o investimento rende, <strong>amortizar sai {{ comp.diferenca|abs|brl }} na frente</strong>.{% endif %}
+    </p>
+
     <div class="painel-destaque">
-      <strong>Empate: {{ comp.taxa_empate|pct(2) }} a.a.{{ ' bruto' if comp.tipo == 'bruta' else ' líquido' }}</strong>
-      <span>É o mínimo que o investimento precisa render para empatar com amortizar.
-        {% if comp.vence == 'investir' %}O seu passa disso: vale manter investido.{% else %}Abaixo disso, amortizar ganha.{% endif %}</span>
+      <strong>Ponto de empate: {{ comp.taxa_empate|pct(2) }} ao ano{% if comp.empate_cdi and comp.tipo == 'bruta' %} (≈ {{ comp.empate_cdi|num_br(0) }}% do CDI){% endif %}</strong>
+      <span>{% if comp.tipo == 'bruta' %}Investimentos com IR que rendem mais que isso ganham da amortização; abaixo disso, amortizar é melhor.
+        {% else %}Investimentos isentos que rendem mais que isso ganham da amortização; abaixo disso, amortizar é melhor.{% endif %}</span>
     </div>
     <p class="painel-nota">Custo da dívida: juros do contrato ({{ fin.taxa_mensal|pct(4) }} a.m.){% if tr_mensal %} + TR projetada ({{ tr_mensal|pct(4) }} a.m.){% endif %}.
       {% if comp.limitado %} Valor limitado ao saldo devedor.{% endif %}</p>
     {% else %}
     <div class="painel-cab"><span class="sobretitulo">Amortizar x investir</span></div>
     <h2>O que rende mais: abater a dívida ou investir?</h2>
-    <p class="painel-rot">O raciocínio:</p>
     <ul class="painel-lista">
       <li><strong>Amortizar</strong> elimina juros{% if est.tr %} e TR{% endif %} sobre o valor abatido: é um retorno garantido, sem risco e sem imposto.</li>
       <li><strong>Investir</strong> rende a taxa do investimento, menos o IR no resgate.</li>
       <li><strong>Ganha quem rende mais</strong> no mesmo prazo. Sua reserva de emergência fica fora dessa conta.</li>
     </ul>
     <div class="painel-destaque">
-      <strong>Sua dívida custa {{ (((1 + fin.taxa_mensal) * (1 + tr_mensal)) ** 12 - 1)|pct(2) }} a.a.</strong>
-      <span>Juros do contrato{% if tr_mensal %} + TR projetada{% endif %}. É quanto a amortização "rende".</span>
+      <strong>Sua dívida custa {{ (((1 + fin.taxa_mensal) * (1 + tr_mensal)) ** 12 - 1)|pct(2) }} ao ano</strong>
+      <span>Juros do contrato{% if tr_mensal %} + TR projetada{% endif %}. É quanto a amortização "rende".
+        {% if mercado and mercado.cdi %}Hoje o CDI está em {{ mercado.cdi|num_br(2) }}% a.a.{% endif %}</span>
     </div>
     {% endif %}
   </section>
