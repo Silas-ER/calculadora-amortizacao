@@ -122,4 +122,11 @@
     const alvo = i.closest('label').querySelector('[data-nome-arquivo]');
     if (alvo && i.files[0]) alvo.textContent = i.files[0].name;
   }));
+
+  // erro de formulário: leva a tela até a mensagem (o navegador pode manter a rolagem no fim da página)
+  const erroForm = document.querySelector('[data-erro-form]');
+  if (erroForm) {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    requestAnimationFrame(() => erroForm.scrollIntoView({ block: 'center' }));
+  }
 })();

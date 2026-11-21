@@ -574,8 +574,8 @@ def cadastrar():
             erro = "Seguros e taxas não podem ser negativos."
         elif pagas < 0 or pagas != int(pagas) or pagas > prazo:
             erro = "Parcelas pagas deve ser um número entre 0 e o prazo."
-        elif saldo_atual is not None and (saldo_atual <= 0 or pagas < 1):
-            erro = "Para ajustar pelo extrato, informe o saldo devedor atual e quantas parcelas já foram pagas."
+        elif saldo_atual is not None and saldo_atual <= 0:
+            erro = "O saldo devedor atual deve ser maior que zero. Deixe em branco para calcular pelas condições originais."
         elif prazo_rest is not None and (saldo_atual is None or prazo_rest < 1 or prazo_rest > 600 or prazo_rest != int(prazo_rest)):
             erro = "Parcelas restantes só valem junto com o saldo devedor atual (entre 1 e 600)."
         elif form["indexador"] not in ("nenhum", "TR") or form["projecao_tr"] not in ("media12", "zero"):
@@ -584,9 +584,7 @@ def cadastrar():
             data_primeira = date.fromisoformat(form["data_primeira"])
         except ValueError:
             erro = erro or "Informe a data da 1ª parcela."
-        if erro:
-            flash(erro, "erro")
-        else:
+        if not erro:
             prazo, pagas = int(prazo), int(pagas)
             i = fz.taxa_mensal(taxa, form["tipo_taxa"])
             db = get_db()
@@ -616,6 +614,7 @@ def cadastrar():
             if tr_erro:
                 flash(f"{tr_erro}. As parcelas usam a TR projetada e serão atualizadas na próxima consulta.", "erro")
             return redirect(url_for("visao_geral", fid=cur.lastrowid))
+        return render_template("cadastrar.html", form=form, erro=erro, pagina="Cadastrar contrato")
     return render_template("cadastrar.html", form=form, pagina="Cadastrar contrato")
 
 

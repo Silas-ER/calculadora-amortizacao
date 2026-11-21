@@ -86,6 +86,7 @@
     </div>
   </section>
 
+  {% if erro %}<div class="alerta erro" role="alert" data-erro-form>{{ erro }}</div>{% endif %}
   <div class="acoes">
     <button class="btn">Cadastrar contrato {{ icone('seta', 16) }}</button>
     <a class="btn btn-sec" href="{{ url_for('contratos') }}">Cancelar</a>
