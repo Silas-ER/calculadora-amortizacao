@@ -19,9 +19,9 @@
 {% if itens %}
 <div class="grade-contratos">
   {% for f, e in itens %}
-  <a class="cartao contrato {% if g.fin_nav and g.fin_nav.id == f.id %}atual{% endif %}" href="{{ url_for('visao_geral', fid=f.id) }}">
+  <div class="cartao contrato contrato-item {% if g.fin_nav and g.fin_nav.id == f.id %}atual{% endif %}">
     <div class="cartao-cab">
-      <div><h2>{{ f.nome }}</h2>
+      <div><h2><a class="link-cartao" href="{{ url_for('visao_geral', fid=f.id) }}">{{ f.nome }}</a></h2>
         <p class="muted">{{ f.instituicao or {'importado': 'Planilha importada', 'manual': 'Cadastro manual'}.get(f.origem, 'Simulação') }}{% if f.numero_contrato %} • Contrato {{ f.numero_contrato }}{% endif %}</p></div>
       <span class="pilula prevista">{{ 'SAC' if f.sistema == 'SAC' else 'Price' }}</span>
     </div>
@@ -30,8 +30,11 @@
       <div><dt>Próxima parcela</dt><dd>{{ e.proxima.valor_parcela|brl if e.proxima else 'Quitado' }}</dd></div>
     </dl>
     <div class="progresso"><i style="width: {{ (e.progresso * 100)|round(2) }}%"></i></div>
-    <small class="destaque-txt">{{ e.progresso|pct(1) }} quitado • {{ f.parcelas_pagas }} de {{ f.prazo_meses }} parcelas</small>
-  </a>
+    <div class="contrato-rodape">
+      <small class="destaque-txt">{{ e.progresso|pct(1) }} quitado • {{ f.parcelas_pagas }} de {{ f.prazo_meses }} parcelas</small>
+      <a class="link-forte acima" href="{{ url_for('editar', fid=f.id) }}">{{ icone('lapis', 14) }} Editar</a>
+    </div>
+  </div>
   {% endfor %}
 </div>
 {% else %}
