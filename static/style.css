@@ -352,6 +352,7 @@ fieldset .segmentado label span { min-width: 0; }
 .ficha-2 { grid-template-columns: 1fr 1fr; }
 .zona-perigo { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-color: var(--perigo-bg); }
 .zona-perigo p { margin: 4px 0 0; font-size: .85rem; }
+.form-cadastro + .zona-perigo { margin-top: 40px; }
 .upload { cursor: pointer; }
 .upload input { position: absolute; opacity: 0; width: 1px; }
 .upload-area { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 1.5px dashed var(--borda-forte); border-radius: 10px; padding: 28px; color: var(--acento); text-align: center; }

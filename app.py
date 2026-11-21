@@ -569,84 +569,120 @@ def simulador():
     return render_template("simulador.html", form=form, comp=comp, pagina="Comparar SAC e Price")
 
 
+CAMPOS_CONTRATO = ("nome", "instituicao", "numero_contrato", "valor", "taxa", "tipo_taxa", "prazo", "sistema",
+                   "data_primeira", "encargos", "parcelas_pagas", "saldo_atual", "prazo_restante", "parcela_extrato",
+                   "indexador", "projecao_tr")
+# campos que definem a tabela inteira: mudar qualquer um recalcula todas as parcelas
+CAMPOS_CONDICOES = ("valor", "taxa", "tipo_taxa", "prazo", "sistema", "data_primeira", "encargos")
+
+
+def _ler_contrato(form):
+    """Valida o formulário de contrato (cadastro e edição). Retorna (erro, dados)."""
+    p = fz.parse_num
+    d = {"valor": p(form["valor"]), "taxa": p(form["taxa"]), "prazo": p(form["prazo"]),
+         "encargos": p(form["encargos"]) or 0.0, "pagas": p(form["parcelas_pagas"]) or 0,
+         "saldo_atual": p(form["saldo_atual"]), "prazo_rest": p(form["prazo_restante"]),
+         "extrato": p(form["parcela_extrato"]) or None, "data_primeira": None}
+    erro = None
+    if not form["nome"]:
+        erro = "Dê um nome ao imóvel."
+    elif not d["valor"] or d["valor"] <= 0:
+        erro = "Informe o valor financiado."
+    elif d["taxa"] is None or d["taxa"] < 0 or d["taxa"] > 100:
+        erro = "Informe a taxa de juros."
+    elif form["tipo_taxa"] not in ("anual", "nominal", "mensal"):
+        erro = "Escolha o tipo da taxa."
+    elif not d["prazo"] or d["prazo"] < 1 or d["prazo"] > 600 or d["prazo"] != int(d["prazo"]):
+        erro = "Informe um prazo entre 1 e 600 meses."
+    elif form["sistema"] not in ("SAC", "PRICE"):
+        erro = "Escolha SAC ou Price."
+    elif d["encargos"] < 0:
+        erro = "Seguros e taxas não podem ser negativos."
+    elif d["pagas"] < 0 or d["pagas"] != int(d["pagas"]) or d["pagas"] > d["prazo"]:
+        erro = "Parcelas pagas deve ser um número entre 0 e o prazo."
+    elif d["saldo_atual"] is not None and d["saldo_atual"] <= 0:
+        erro = "O saldo devedor atual deve ser maior que zero. Deixe em branco para calcular pelas condições originais."
+    elif d["prazo_rest"] is not None and (d["saldo_atual"] is None or d["prazo_rest"] < 1 or d["prazo_rest"] > 600
+                                         or d["prazo_rest"] != int(d["prazo_rest"])):
+        erro = "Parcelas restantes só valem junto com o saldo devedor atual (entre 1 e 600)."
+    elif form["indexador"] not in ("nenhum", "TR") or form["projecao_tr"] not in ("media12", "zero"):
+        erro = "Escolha a atualização monetária do contrato."
+    elif d["extrato"] is not None and d["extrato"] <= d["encargos"]:
+        erro = "O valor da parcela do extrato deve ser maior que os seguros e taxas mensais."
+    try:
+        d["data_primeira"] = date.fromisoformat(form["data_primeira"])
+    except ValueError:
+        erro = erro or "Informe a data da 1ª parcela."
+    if not erro:
+        d["prazo"], d["pagas"] = int(d["prazo"]), int(d["pagas"])
+        d["prazo_rest"] = int(d["prazo_rest"]) if d["prazo_rest"] else None
+        d["i"] = fz.taxa_mensal(d["taxa"], form["tipo_taxa"])
+    return erro, d
+
+
+def _montar_parcelas(db, d, form, pagas_existentes=None, restantes_existentes=None):
+    """Gera a tabela do contrato. Retorna (linhas, aviso_tr).
+
+    pagas_existentes: mantém essas linhas (parcelas já pagas) e recalcula só o restante a partir do saldo atual.
+    """
+    pagas, data1, i, sistema = d["pagas"], d["data_primeira"], d["i"], form["sistema"]
+    usa_saldo = d["saldo_atual"] is not None
+    if usa_saldo:
+        restantes = d["prazo_rest"] or restantes_existentes or d["prazo"] - pagas
+    else:
+        restantes = d["prazo"] - pagas
+    fatores, tr_erro = None, None
+    if form["indexador"] == "TR":
+        desde = fz.add_months(data1, -1)
+        tr_erro = indices.atualizar(db, desde)["erro"]
+        venc = [fz.add_months(data1, m) for m in range(max(d["prazo"], pagas + restantes))]
+        fatores, _ = indices.TabelaTR(db, desde).fatores(venc, form["projecao_tr"])
+    alvos = {pagas + 1: d["extrato"]} if d["extrato"] else None
+    if pagas_existentes is not None:
+        linhas = pagas_existentes
+    else:
+        linhas = fz.gerar_tabela(d["valor"], i, d["prazo"], sistema, data1, d["encargos"], 1, fatores,
+                                 None if usa_saldo else alvos)
+    if usa_saldo:
+        linhas = linhas[:pagas] + fz.gerar_tabela(d["saldo_atual"], i, restantes, sistema, fz.add_months(data1, pagas),
+                                                  d["encargos"], pagas + 1, fatores[pagas:] if fatores else None, alvos)
+    return linhas, tr_erro
+
+
+def _avisar_tr(tr_erro):
+    if tr_erro:
+        flash(f"{tr_erro}. As parcelas usam a TR projetada e serão atualizadas na próxima consulta.", "erro")
+
+
 @app.route("/financiamentos/cadastrar", methods=["GET", "POST"])
 @login_required
 def cadastrar():
-    campos = ("nome", "instituicao", "numero_contrato", "valor", "taxa", "tipo_taxa", "prazo", "sistema",
-              "data_primeira", "encargos", "parcelas_pagas", "saldo_atual", "prazo_restante", "parcela_extrato",
-              "indexador", "projecao_tr")
-    form = {k: "" for k in campos}
+    form = {k: "" for k in CAMPOS_CONTRATO}
     form.update({"tipo_taxa": "anual", "sistema": "SAC", "encargos": "0", "parcelas_pagas": "0",
                  "indexador": "TR", "projecao_tr": "media12"})
+    erro = None
     if request.method == "POST":
-        form.update({k: request.form.get(k, form[k]).strip() for k in campos})
-        valor, taxa, prazo = num("valor"), num("taxa"), num("prazo")
-        encargos, pagas = num("encargos", 0.0), num("parcelas_pagas", 0)
-        saldo_atual, prazo_rest = num("saldo_atual"), num("prazo_restante")
-        parcela_extrato = num("parcela_extrato") or None
-        erro = None
-        if not form["nome"]:
-            erro = "Dê um nome ao imóvel."
-        elif not valor or valor <= 0:
-            erro = "Informe o valor financiado."
-        elif taxa is None or taxa < 0 or taxa > 100:
-            erro = "Informe a taxa de juros."
-        elif not prazo or prazo < 1 or prazo > 600 or prazo != int(prazo):
-            erro = "Informe um prazo entre 1 e 600 meses."
-        elif form["sistema"] not in ("SAC", "PRICE"):
-            erro = "Escolha SAC ou Price."
-        elif encargos < 0:
-            erro = "Seguros e taxas não podem ser negativos."
-        elif pagas < 0 or pagas != int(pagas) or pagas > prazo:
-            erro = "Parcelas pagas deve ser um número entre 0 e o prazo."
-        elif saldo_atual is not None and saldo_atual <= 0:
-            erro = "O saldo devedor atual deve ser maior que zero. Deixe em branco para calcular pelas condições originais."
-        elif prazo_rest is not None and (saldo_atual is None or prazo_rest < 1 or prazo_rest > 600 or prazo_rest != int(prazo_rest)):
-            erro = "Parcelas restantes só valem junto com o saldo devedor atual (entre 1 e 600)."
-        elif form["indexador"] not in ("nenhum", "TR") or form["projecao_tr"] not in ("media12", "zero"):
-            erro = "Escolha a atualização monetária do contrato."
-        elif parcela_extrato is not None and parcela_extrato <= encargos:
-            erro = "O valor da parcela do extrato deve ser maior que os seguros e taxas mensais."
-        try:
-            data_primeira = date.fromisoformat(form["data_primeira"])
-        except ValueError:
-            erro = erro or "Informe a data da 1ª parcela."
+        form.update({k: request.form.get(k, form[k]).strip() for k in CAMPOS_CONTRATO})
+        erro, d = _ler_contrato(form)
         if not erro:
-            prazo, pagas = int(prazo), int(pagas)
-            i = fz.taxa_mensal(taxa, form["tipo_taxa"])
             db = get_db()
-            restantes = (int(prazo_rest) if prazo_rest else prazo - pagas) if saldo_atual is not None else prazo - pagas
-            total = pagas + restantes
-            fatores, tr_erro = None, None
-            if form["indexador"] == "TR":
-                desde = fz.add_months(data_primeira, -1)
-                tr_erro = indices.atualizar(db, desde)["erro"]
-                venc = [fz.add_months(data_primeira, m) for m in range(max(prazo, total))]
-                fatores, _ = indices.TabelaTR(db, desde).fatores(venc, form["projecao_tr"])
-            ajuste = (pagas + 1, parcela_extrato) if parcela_extrato else (0, 0.0)
-            alvos = {ajuste[0]: ajuste[1]} if parcela_extrato else None
-            linhas = fz.gerar_tabela(valor, i, prazo, form["sistema"], data_primeira, encargos, 1, fatores,
-                                     None if saldo_atual is not None else alvos)
-            if saldo_atual is not None:
-                linhas = linhas[:pagas] + fz.gerar_tabela(saldo_atual, i, restantes, form["sistema"],
-                                                          fz.add_months(data_primeira, pagas), encargos, pagas + 1,
-                                                          fatores[pagas:] if fatores else None, alvos)
+            linhas, tr_erro = _montar_parcelas(db, d, form)
+            ajuste = (d["pagas"] + 1, d["extrato"]) if d["extrato"] else (0, 0.0)
             cur = db.execute(
                 "INSERT INTO financiamentos (usuario_id, nome, instituicao, numero_contrato, valor_financiado, taxa_mensal, "
-                "taxa_anual, prazo_meses, prazo_original, sistema, encargos_mensais, data_primeira, parcelas_pagas, "
-                "indexador, projecao_tr, ajuste_parcela, ajuste_valor, origem) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'manual')",
-                (g.user["id"], form["nome"][:100], form["instituicao"][:100], form["numero_contrato"][:40], valor, i,
-                 fz.mensal_para_anual(i), len(linhas), prazo, form["sistema"], encargos, data_primeira.isoformat(), pagas,
-                 form["indexador"], form["projecao_tr"], ajuste[0], ajuste[1]))
+                "taxa_anual, taxa_informada, tipo_taxa, prazo_meses, prazo_original, sistema, encargos_mensais, "
+                "data_primeira, parcelas_pagas, indexador, projecao_tr, ajuste_parcela, ajuste_valor, origem) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'manual')",
+                (g.user["id"], form["nome"][:100], form["instituicao"][:100], form["numero_contrato"][:40], d["valor"],
+                 d["i"], fz.mensal_para_anual(d["i"]), d["taxa"], form["tipo_taxa"], len(linhas), d["prazo"],
+                 form["sistema"], d["encargos"], d["data_primeira"].isoformat(), d["pagas"], form["indexador"],
+                 form["projecao_tr"], ajuste[0], ajuste[1]))
             salvar_parcelas(db, cur.lastrowid, linhas)
             db.commit()
             flash("Contrato cadastrado.", "ok")
-            if tr_erro:
-                flash(f"{tr_erro}. As parcelas usam a TR projetada e serão atualizadas na próxima consulta.", "erro")
+            _avisar_tr(tr_erro)
             return redirect(url_for("visao_geral", fid=cur.lastrowid))
-        return render_template("cadastrar.html", form=form, erro=erro, pagina="Cadastrar contrato")
-    return render_template("cadastrar.html", form=form, pagina="Cadastrar contrato")
+    return render_template("cadastrar.html", form=form, erro=erro, pagina="Cadastrar contrato")
 
 
 @app.route("/financiamentos/<int:fid>")
@@ -802,6 +838,24 @@ def aplicar_amortizacao(fid):
     return redirect(url_for("amortizacoes", fid=fid) + "#historico")
 
 
+def _form_do_contrato(fin):
+    """Valores atuais do contrato no formato do formulário."""
+    if fin["tipo_taxa"]:
+        taxa, tipo = fin["taxa_informada"], fin["tipo_taxa"]
+    else:  # contratos antigos, importados ou do simulador: mostra a taxa efetiva anual
+        taxa, tipo = fin["taxa_anual"] * 100, "anual"
+    return {
+        "nome": fin["nome"], "instituicao": fin["instituicao"], "numero_contrato": fin["numero_contrato"],
+        "valor": num_br(fin["valor_financiado"], 2), "taxa": num_br(taxa, 2), "tipo_taxa": tipo,
+        "prazo": str(fin["prazo_original"] or fin["prazo_meses"]), "sistema": fin["sistema"],
+        "data_primeira": fin["data_primeira"], "encargos": num_br(fin["encargos_mensais"], 2),
+        "parcelas_pagas": str(fin["parcelas_pagas"]), "saldo_atual": "", "prazo_restante": "",
+        "parcela_extrato": (num_br(fin["ajuste_valor"], 2)
+                            if fin["ajuste_parcela"] and fin["ajuste_parcela"] == fin["parcelas_pagas"] + 1 else ""),
+        "indexador": fin["indexador"], "projecao_tr": fin["projecao_tr"],
+    }
+
+
 @app.route("/financiamentos/<int:fid>/editar", methods=["GET", "POST"])
 @login_required
 def editar(fid):
@@ -811,44 +865,70 @@ def editar(fid):
                         (fid,)).fetchone()[0]
     minimo = db.execute("SELECT COALESCE(MAX(apos_parcela), 0) FROM amortizacoes WHERE financiamento_id = ?",
                         (fid,)).fetchone()[0]
+    tem_amortizacoes = db.execute("SELECT 1 FROM amortizacoes WHERE financiamento_id = ? LIMIT 1",
+                                  (fid,)).fetchone() is not None
+    atual = _form_do_contrato(fin)
+    form, erro = dict(atual), None
     if request.method == "POST":
-        nome = request.form.get("nome", "").strip()[:100]
-        n = num("parcelas_pagas")
-        indexador = request.form.get("indexador", fin["indexador"])
-        projecao = request.form.get("projecao_tr", fin["projecao_tr"])
-        extrato = num("parcela_extrato") or None
-        if not nome:
-            flash("Informe o nome do imóvel.", "erro")
-        elif n is None or n != int(n) or not (minimo <= n <= maximo):
-            flash(f"Parcelas pagas deve ser um número entre {minimo} e {maximo}.", "erro")
-        elif indexador not in ("nenhum", "TR") or projecao not in ("media12", "zero"):
-            flash("Escolha a atualização monetária do contrato.", "erro")
-        elif extrato is not None and extrato <= fin["encargos_mensais"]:
-            flash("O valor da parcela do extrato deve ser maior que os seguros e taxas mensais.", "erro")
-        else:
-            n = int(n)
+        form.update({k: request.form.get(k, atual[k]).strip() for k in CAMPOS_CONTRATO})
+        numericos = ("valor", "taxa", "prazo", "encargos")
+        mudou = [k for k in CAMPOS_CONDICOES
+                 if (fz.parse_num(form[k]) != fz.parse_num(atual[k]) if k in numericos else form[k] != atual[k])]
+        erro, d = _ler_contrato(form)
+        if not erro:
+            n = d["pagas"]
+            limite = d["prazo"] if mudou else maximo
+            if mudou and tem_amortizacoes:
+                erro = ("Este contrato tem amortizações registradas, que dependem das condições atuais. "
+                        "Para mudar valor, taxa, prazo, sistema, data ou seguros, cadastre o contrato novamente.")
+            elif not (minimo <= n <= limite):
+                erro = f"Parcelas pagas deve ser um número entre {minimo} e {limite}."
+        if not erro:
+            extrato = d["extrato"]
             if extrato and fin["ajuste_parcela"] and fin["ajuste_parcela"] != n + 1 and extrato == fin["ajuste_valor"]:
-                extrato = None  # valor pré-preenchido de outra parcela (mudou só o nº de pagas): não reaplica
+                extrato = d["extrato"] = None  # valor pré-preenchido de outra parcela (mudou só o nº de pagas)
             if extrato:
                 ajuste = (n + 1, extrato)
-            elif fin["ajuste_parcela"] and fin["ajuste_parcela"] <= n:
+            elif fin["ajuste_parcela"] and fin["ajuste_parcela"] <= n and not mudou:
                 ajuste = (fin["ajuste_parcela"], fin["ajuste_valor"])  # parcela já paga: fica no histórico
             else:
                 ajuste = (0, 0.0)
-            db.execute("UPDATE financiamentos SET nome = ?, instituicao = ?, numero_contrato = ?, parcelas_pagas = ?, "
-                       "indexador = ?, projecao_tr = ?, ajuste_parcela = ?, ajuste_valor = ?, tr_assinatura = '' "
-                       "WHERE id = ?",
-                       (nome, request.form.get("instituicao", "").strip()[:100],
-                        request.form.get("numero_contrato", "").strip()[:40], n, indexador, projecao,
-                        ajuste[0], ajuste[1], fid))
-            mudou_ajuste = ajuste != (fin["ajuste_parcela"], fin["ajuste_valor"])
-            if indexador == "nenhum" and (fin["indexador"] == "TR" or mudou_ajuste):
-                # sem TR: recalcula as parcelas ainda não pagas sem correção (com TR, sincronizar_tr cuida disso)
+            tr_erro = None
+            if mudou or d["saldo_atual"] is not None:
+                # recalcula a tabela: tudo (condições novas) ou só a partir do saldo atual informado
+                manter = None if mudou else _ler_parcelas(db, fid)[:n]
+                if not mudou:  # condições de sempre: usa os valores exatos do contrato (o formulário arredonda)
+                    d.update(i=fin["taxa_mensal"], encargos=fin["encargos_mensais"])
+                linhas, tr_erro = _montar_parcelas(db, d, form, manter, maximo - n)
+                db.execute("DELETE FROM parcelas WHERE financiamento_id = ?", (fid,))
+                salvar_parcelas(db, fid, linhas)
+            db.execute(
+                "UPDATE financiamentos SET nome = ?, instituicao = ?, numero_contrato = ?, valor_financiado = ?, "
+                "taxa_mensal = ?, taxa_anual = ?, taxa_informada = ?, tipo_taxa = ?, prazo_meses = ?, prazo_original = ?, "
+                "sistema = ?, encargos_mensais = ?, data_primeira = ?, parcelas_pagas = ?, indexador = ?, projecao_tr = ?, "
+                "ajuste_parcela = ?, ajuste_valor = ?, tr_assinatura = '' WHERE id = ?",
+                (form["nome"][:100], form["instituicao"][:100], form["numero_contrato"][:40],
+                 d["valor"] if mudou else fin["valor_financiado"],
+                 d["i"] if mudou else fin["taxa_mensal"],
+                 fz.mensal_para_anual(d["i"]) if mudou else fin["taxa_anual"],
+                 d["taxa"] if mudou else fin["taxa_informada"],
+                 form["tipo_taxa"] if mudou else fin["tipo_taxa"],
+                 db.execute("SELECT COUNT(*) FROM parcelas WHERE financiamento_id = ?", (fid,)).fetchone()[0],
+                 d["prazo"] if mudou else fin["prazo_original"],
+                 form["sistema"] if mudou else fin["sistema"],
+                 d["encargos"] if mudou else fin["encargos_mensais"],
+                 d["data_primeira"].isoformat() if mudou else fin["data_primeira"],
+                 n, form["indexador"], form["projecao_tr"], ajuste[0], ajuste[1], fid))
+            if form["indexador"] == "nenhum" and not mudou and d["saldo_atual"] is None and (
+                    fin["indexador"] == "TR" or ajuste != (fin["ajuste_parcela"], fin["ajuste_valor"])):
+                # sem TR: recalcula as parcelas ainda não pagas (com TR, sincronizar_tr cuida disso)
                 _regerar_restantes(db, get_fin(fid), n)
             db.commit()
-            flash("Contrato atualizado.", "ok")
+            flash("Contrato recalculado com as novas condições." if mudou else "Contrato atualizado.", "ok")
+            _avisar_tr(tr_erro)
             return redirect(url_for("visao_geral", fid=fid))
-    return render_template("editar.html", fin=fin, minimo=minimo, maximo=maximo, pagina="Editar contrato")
+    return render_template("cadastrar.html", form=form, erro=erro, fin=fin, editando=True, minimo=minimo,
+                           maximo=maximo, tem_amortizacoes=tem_amortizacoes, pagina="Editar contrato")
 
 
 @app.post("/financiamentos/<int:fid>/excluir")

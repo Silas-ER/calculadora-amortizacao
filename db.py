@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS financiamentos (
     tr_assinatura    TEXT NOT NULL DEFAULT '',         -- controla quando recalcular as parcelas
     ajuste_parcela   INTEGER NOT NULL DEFAULT 0,       -- parcela cujo valor veio do extrato (0 = nenhuma)
     ajuste_valor     REAL NOT NULL DEFAULT 0,          -- valor total dessa parcela no extrato
+    taxa_informada   REAL NOT NULL DEFAULT 0,          -- taxa como o usuário digitou (%)
+    tipo_taxa        TEXT NOT NULL DEFAULT '',         -- 'anual' (efetiva), 'nominal', 'mensal' ou '' (não informado)
     criado_em        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -132,6 +134,9 @@ def _migrar(db):
     if "ajuste_parcela" not in cols:
         db.execute("ALTER TABLE financiamentos ADD COLUMN ajuste_parcela INTEGER NOT NULL DEFAULT 0")
         db.execute("ALTER TABLE financiamentos ADD COLUMN ajuste_valor REAL NOT NULL DEFAULT 0")
+    if "tipo_taxa" not in cols:
+        db.execute("ALTER TABLE financiamentos ADD COLUMN taxa_informada REAL NOT NULL DEFAULT 0")
+        db.execute("ALTER TABLE financiamentos ADD COLUMN tipo_taxa TEXT NOT NULL DEFAULT ''")
     cols_parcelas = _colunas(db, "parcelas")
     if cols_parcelas and "correcao" not in cols_parcelas:
         db.execute("ALTER TABLE parcelas ADD COLUMN correcao REAL NOT NULL DEFAULT 0")
