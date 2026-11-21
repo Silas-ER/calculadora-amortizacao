@@ -81,6 +81,74 @@
   {% endif %}
 </section>
 
+<h2 class="titulo-secao" id="comparar">Amortizar ou investir?</h2>
+<div class="grade-sim">
+  <form method="get" class="cartao" action="{{ url_for('recomendacao', fid=fin.id) }}#comparar">
+    <h2>Compare com um investimento</h2>
+    <p class="muted">Amortizar é como um investimento garantido e isento de IR, que rende exatamente o custo da sua dívida.</p>
+    <div class="campos-2">
+      <label class="campo">Valor que você tem
+        <span class="com-prefixo"><i>R$</i><input name="cv" value="{{ comp_form.valor }}" data-mascara="moeda" required></span></label>
+      <label class="campo">Prazo da comparação
+        <span class="com-sufixo"><input name="ca" value="{{ comp_form.anos }}" data-mascara="inteiro" required><i>anos</i></span></label>
+      <label class="campo">Rendimento do investimento
+        <span class="com-sufixo"><input name="ct" value="{{ comp_form.taxa }}" data-mascara="taxa" required><i>% a.a.</i></span></label>
+      <fieldset class="campo">
+        <legend>Essa taxa é</legend>
+        <div class="segmentado">
+          <label><input type="radio" name="ctipo" value="bruta" {% if comp_form.tipo != 'liquida' %}checked{% endif %}><span>Bruta</span></label>
+          <label><input type="radio" name="ctipo" value="liquida" {% if comp_form.tipo == 'liquida' %}checked{% endif %}><span>Líquida</span></label>
+        </div>
+      </fieldset>
+    </div>
+    <p class="muted dica-campo"><strong>Bruta:</strong> CDB, Tesouro Direto e outros com IR (descontamos de 22,5% a 15%, conforme o prazo).
+      <strong>Líquida:</strong> LCI, LCA, poupança ou uma taxa que você já calculou sem IR.</p>
+    <button class="btn btn-largo">Comparar {{ icone('seta', 16) }}</button>
+  </form>
+
+  <section class="painel-sim" aria-live="polite">
+    {% if comp %}
+    <div class="painel-cab">
+      <span class="sobretitulo">Em {{ comp.anos }} {{ 'ano' if comp.anos == 1 else 'anos' }}</span>
+      <span class="selo {{ 'selo-sim' if comp.vence == 'amortizar' else 'selo-nao' }}">{{ 'Amortizar' if comp.vence == 'amortizar' else 'Investir' }}</span>
+    </div>
+    <h2>{% if comp.vence == 'amortizar' %}Amortizar rende mais.{% else %}Investir rende mais.{% endif %}</h2>
+    <p class="painel-rot">Diferença a favor de {{ 'amortizar' if comp.vence == 'amortizar' else 'investir' }}</p>
+    <p class="painel-valor">{{ comp.diferenca|abs|brl }}</p>
+    <table class="painel-tab">
+      <thead><tr><th></th><th>Amortizar</th><th>Investir</th></tr></thead>
+      <tbody>
+        <tr><td>Rende ao ano</td><td>{{ comp.custo_divida|pct(2) }}</td><td>{{ comp.rend_liquido|pct(2) }}</td></tr>
+        <tr><td>Imposto de renda</td><td>Isento</td><td>{{ comp.ir|pct(1) if comp.ir else 'Isento' }}</td></tr>
+        <tr><td>{{ comp.valor|brl }} viram</td><td>{{ comp.amortizar_final|brl }}</td><td>{{ comp.investir_final|brl }}</td></tr>
+      </tbody>
+    </table>
+    <div class="painel-destaque">
+      <strong>Empate: {{ comp.taxa_empate|pct(2) }} a.a.{{ ' bruto' if comp.tipo == 'bruta' else ' líquido' }}</strong>
+      <span>É o mínimo que o investimento precisa render para empatar com amortizar.
+        {% if comp.vence == 'investir' %}O seu passa disso: vale manter investido.{% else %}Abaixo disso, amortizar ganha.{% endif %}</span>
+    </div>
+    <p class="painel-nota">Custo da dívida: juros do contrato ({{ fin.taxa_mensal|pct(4) }} a.m.){% if tr_mensal %} + TR projetada ({{ tr_mensal|pct(4) }} a.m.){% endif %}.
+      {% if comp.limitado %} Valor limitado ao saldo devedor.{% endif %}</p>
+    {% else %}
+    <div class="painel-cab"><span class="sobretitulo">Amortizar x investir</span></div>
+    <h2>O que rende mais: abater a dívida ou investir?</h2>
+    <p class="painel-rot">O raciocínio:</p>
+    <ul class="painel-lista">
+      <li><strong>Amortizar</strong> elimina juros{% if est.tr %} e TR{% endif %} sobre o valor abatido: é um retorno garantido, sem risco e sem imposto.</li>
+      <li><strong>Investir</strong> rende a taxa do investimento, menos o IR no resgate.</li>
+      <li><strong>Ganha quem rende mais</strong> no mesmo prazo. Sua reserva de emergência fica fora dessa conta.</li>
+    </ul>
+    <div class="painel-destaque">
+      <strong>Sua dívida custa {{ (((1 + fin.taxa_mensal) * (1 + tr_mensal)) ** 12 - 1)|pct(2) }} a.a.</strong>
+      <span>Juros do contrato{% if tr_mensal %} + TR projetada{% endif %}. É quanto a amortização "rende".</span>
+    </div>
+    {% endif %}
+  </section>
+</div>
+<p class="muted mini-nota momento-nota">Comparação em valores nominais. A taxa de um CDB pós-fixado acompanha o CDI e pode mudar; a TR também.
+  Não considera seguros e taxas do contrato. Mantenha a reserva de emergência fora da amortização: dinheiro amortizado não volta.</p>
+
 <h2 class="titulo-secao">Quanto amortizar com o seu dinheiro?</h2>
 <div class="grade-sim">
   <form method="post" class="cartao">

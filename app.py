@@ -850,8 +850,23 @@ def recomendacao(fid):
         else:
             rec = fz.recomendar(est["ctx"], caixa, despesas, int(meses), rend / 100, num("renda"))
     aviso5 = aviso_5_anos(fin, rec["simulacoes"].get(rec["modalidade"])) if rec and rec.get("simulacoes") else None
+
+    # amortizar ou investir? (formulário GET, independente do de cima)
+    tr_mensal = est["tr"]["media"] if est["tr"] and fin["projecao_tr"] == "media12" else 0.0
+    comp_form = {"valor": request.args.get("cv", ""), "taxa": request.args.get("ct", ""),
+                 "tipo": request.args.get("ctipo", "bruta"), "anos": request.args.get("ca", "5")}
+    comp = None
+    if est["ctx"] and (comp_form["valor"] or comp_form["taxa"]):
+        v, t, a = fz.parse_num(comp_form["valor"]), fz.parse_num(comp_form["taxa"]), fz.parse_num(comp_form["anos"])
+        if not v or v <= 0 or t is None or t < 0 or t > 100 or not a or not 1 <= a <= 50 or a != int(a):
+            flash("Para comparar, informe o valor, a taxa do investimento e um prazo entre 1 e 50 anos.", "erro")
+        else:
+            comp = fz.amortizar_ou_investir(fin["taxa_mensal"], tr_mensal, min(v, est["saldo"]), t / 100,
+                                            "liquida" if comp_form["tipo"] == "liquida" else "bruta", int(a))
+            comp["limitado"] = v > est["saldo"]
     return render_template("recomendacao.html", fin=fin, est=est, form=form, rec=rec, momento=momento,
-                           aviso5=aviso5, pagina="Devo amortizar?")
+                           aviso5=aviso5, comp=comp, comp_form=comp_form, tr_mensal=tr_mensal,
+                           pagina="Devo amortizar?")
 
 
 @app.post("/financiamentos/<int:fid>/amortizacoes/registrar")

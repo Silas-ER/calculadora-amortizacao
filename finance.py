@@ -256,6 +256,44 @@ def momento_amortizacao(ctx, valor_ref=1000.0):
     }
 
 
+def aliquota_ir(anos):
+    """Tabela regressiva do IR sobre renda fixa (CDB, Tesouro etc.), pelo prazo da aplicação."""
+    dias = anos * 365
+    if dias <= 180:
+        return 0.225
+    if dias <= 360:
+        return 0.20
+    if dias <= 720:
+        return 0.175
+    return 0.15
+
+
+def amortizar_ou_investir(i_mensal, tr_mensal, valor, taxa_anual, tipo, anos):
+    """Compara amortizar `valor` hoje com investir o mesmo valor por `anos`.
+
+    Amortizar "rende" exatamente o custo da dívida que deixa de existir (juros do contrato + TR),
+    sem risco e sem IR. Investir rende a taxa informada; se for bruta, desconta o IR no resgate.
+    taxa_anual: fração (0.12 = 12% a.a.); tipo: 'bruta' (sujeita a IR) ou 'liquida' (isenta ou já líquida).
+    """
+    custo_divida = ((1 + i_mensal) * (1 + tr_mensal)) ** 12 - 1
+    ir = aliquota_ir(anos) if tipo == "bruta" else 0.0
+    bruto_final = valor * (1 + taxa_anual) ** anos
+    investir_final = valor + (bruto_final - valor) * (1 - ir)
+    rend_liquido = (investir_final / valor) ** (1 / anos) - 1 if valor and anos else 0.0
+    amortizar_final = valor * (1 + custo_divida) ** anos  # juros + correção que deixam de incidir sobre o valor
+    # taxa bruta que empata: (1 + t)^n − 1 = ((1 + c)^n − 1) / (1 − IR)
+    empate = ((1 + ((1 + custo_divida) ** anos - 1) / (1 - ir)) ** (1 / anos) - 1) if anos else custo_divida
+    return {
+        "valor": valor, "anos": anos, "tipo": tipo, "taxa": taxa_anual, "ir": ir,
+        "custo_divida": custo_divida, "rend_liquido": rend_liquido,
+        "amortizar_final": amortizar_final, "investir_final": investir_final,
+        "ganho_amortizar": amortizar_final - valor, "ganho_investir": investir_final - valor,
+        "diferenca": amortizar_final - investir_final,
+        "vence": "amortizar" if amortizar_final >= investir_final else "investir",
+        "taxa_empate": empate,
+    }
+
+
 def termina_antes_de(linhas, data_limite):
     """Data da última parcela, se o contrato terminar antes de data_limite (ex.: 5 anos da contratação)."""
     if not linhas:
