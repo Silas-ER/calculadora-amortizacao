@@ -215,7 +215,7 @@ def esqueci_senha():
             db.commit()
             link = url_for("redefinir_senha", token=token, _external=True)
             try:
-                enviar_email(u["email"], "Redefinição de senha · amortiza",
+                enviar_email(u["email"], "Redefinição de senha · Amortiza",
                              f"Recebemos um pedido para redefinir sua senha.\n\nAcesse o link abaixo (válido por 1 hora):\n{link}\n\n"
                              "Se não foi você, ignore este e-mail.")
             except (OSError, smtplib.SMTPException):

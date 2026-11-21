@@ -4,7 +4,7 @@
 {% block body %}
 <div class="auth-pagina {% block auth_class %}{% endblock %}">
   <header class="auth-topo">
-    <a class="auth-marca" href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='icone.svg') }}" alt="" width="32" height="32"> amortiza</a>
+    <a class="auth-marca" href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='icone.svg') }}" alt="" width="32" height="32"> Amortiza</a>
     <span class="auth-acoes">{% block topo %}{% endblock %}</span>
   </header>
   <main class="auth-main">
@@ -14,7 +14,7 @@
     {% block content %}{% endblock %}
   </main>
   <footer class="auth-rodape">
-    <span>© 2026 amortiza</span>
+    <span>© 2026 Amortiza</span>
     <span><a href="{{ url_for('privacidade') }}">Privacidade</a> <i>•</i> <a href="{{ url_for('termos') }}">Termos de uso</a></span>
   </footer>
 </div>

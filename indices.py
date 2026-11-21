@@ -23,7 +23,7 @@ class TRIndisponivel(Exception):
 
 def _consultar(inicio: date, fim: date):
     url = URL.format(serie=SERIE_TR, ini=inicio.strftime("%d/%m/%Y"), fim=fim.strftime("%d/%m/%Y"))
-    req = urllib.request.Request(url, headers={"User-Agent": "amortiza/1.0", "Accept": "application/json"})
+    req = urllib.request.Request(url, headers={"User-Agent": "Amortiza/1.0", "Accept": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=15) as r:
             return json.load(r)
