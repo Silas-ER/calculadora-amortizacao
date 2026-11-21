@@ -191,7 +191,9 @@ fieldset .segmentado label span { min-width: 0; }
   [data-menu="oculto"] .lateral { margin-left: -248px; visibility: hidden; transition: margin-left .2s ease, visibility 0s .2s; }
 }
 @media (prefers-reduced-motion: reduce) { .lateral { transition: none !important; } }
-.conteudo { padding: 32px; max-width: 1240px; width: 100%; }
+.conteudo { padding: 32px; max-width: 1240px; width: 100%; margin-inline: auto; }
+/* menu oculto: o conteúdo aproveita a largura liberada pelo menu (248px) */
+@media (min-width: 861px) { [data-menu="oculto"] .conteudo { max-width: 1488px; } }
 
 /* ================================================================ componentes */
 .pagina-cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
