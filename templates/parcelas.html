@@ -6,6 +6,7 @@
     <p class="sobretitulo">Planilha de parcelas</p>
     <h1>Cada parcela, sem surpresas.</h1>
     <p class="subtitulo">Todos os números do seu financiamento em um só lugar.</p>
+    {% with endpoint = 'parcelas' %}{% include "_contrato_cab.html" %}{% endwith %}
   </div>
   <a class="btn btn-sec" href="{{ url_for('exportar', fid=fin.id) }}">{{ icone('baixar', 16) }} Exportar CSV</a>
 </div>

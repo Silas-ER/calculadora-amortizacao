@@ -1,0 +1,12 @@
+{# Mostra de qual contrato é a página; com mais de um, vira um seletor. Espera: fin, endpoint #}
+{% from "_icones.html" import icone %}
+{% if g.contratos|length > 1 %}
+<label class="contrato-cab">{{ icone('casa', 16) }}<span class="sr">Contrato</span>
+  <select data-navegar aria-label="Contrato exibido">
+    {% for c in g.contratos %}
+    <option value="{{ url_for(endpoint, fid=c.id) }}" {% if c.id == fin.id %}selected{% endif %}>{{ c.nome }}{% if c.instituicao %} · {{ c.instituicao }}{% endif %}</option>
+    {% endfor %}
+  </select>{{ icone('chevron', 14) }}</label>
+{% else %}
+<p class="contrato-cab">{{ icone('casa', 16) }}<span>{{ fin.nome }}{% if fin.instituicao %} · {{ fin.instituicao }}{% endif %}{% if fin.numero_contrato %} · Contrato {{ fin.numero_contrato }}{% endif %}</span></p>
+{% endif %}

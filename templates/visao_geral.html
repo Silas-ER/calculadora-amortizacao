@@ -6,6 +6,7 @@
     <p class="sobretitulo">Visão geral</p>
     <h1>{% if est.ctx %}Seu imóvel, mais perto de ser seu.{% else %}Seu imóvel é todo seu.{% endif %}</h1>
     <p class="subtitulo">Acompanhe sua evolução e planeje o próximo passo.</p>
+    {% with endpoint = 'visao_geral' %}{% include "_contrato_cab.html" %}{% endwith %}
   </div>
   {% if est.ctx %}<a class="btn" href="{{ url_for('amortizacoes', fid=fin.id) }}">{{ icone('mais', 16) }} Nova amortização</a>{% endif %}
 </div>
