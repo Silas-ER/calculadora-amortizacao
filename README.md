@@ -21,6 +21,8 @@ Abra http://127.0.0.1:5000, crie uma conta e comece.
   líquido do investimento e comprometimento da renda, com tabela de "quanto amortizar"
 - Simulação de amortização reduzindo prazo ou parcela, e registro da amortização (recalcula a tabela)
 - Importação de planilha .xlsx/.csv (detecta taxa e sistema automaticamente) e exportação CSV
+- Planilha com ações por parcela: marcar como paga (ou desfazer) e informar prestação/saldo do extrato;
+  as parcelas seguintes são recalculadas a partir desses valores (tabela `ajustes_parcela`)
 
 ## TR (atualização monetária)
 

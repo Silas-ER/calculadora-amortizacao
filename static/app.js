@@ -123,6 +123,28 @@
     if (alvo && i.files[0]) alvo.textContent = i.files[0].name;
   }));
 
+  // planilha: editar uma parcela com os valores do extrato
+  const dlg = document.getElementById('dlg-parcela');
+  if (dlg) {
+    const form = dlg.querySelector('[data-form-parcela]');
+    const campo = (n) => dlg.querySelector(`[data-campo="${n}"]`);
+    document.querySelectorAll('[data-editar-parcela]').forEach((b) => b.addEventListener('click', () => {
+      const d = b.dataset;
+      form.action = d.acao;
+      campo('numero').textContent = d.numero;
+      campo('venc').textContent = d.venc;
+      campo('parcela').value = d.parcela;
+      campo('saldo').value = d.saldo;
+      dlg.querySelector('[data-so-aberta]').hidden = d.paga === '1';
+      dlg.querySelector('[name="paga"]').checked = false;
+      dlg.querySelector('[data-so-ajustada]').hidden = d.ajustada !== '1';
+      dlg.showModal();
+      campo('parcela').focus();
+    }));
+    dlg.querySelector('[data-fechar]').addEventListener('click', () => dlg.close());
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); }); // clique fora fecha
+  }
+
   // erro de formulário: leva a tela até a mensagem (o navegador pode manter a rolagem no fim da página)
   const erroForm = document.querySelector('[data-erro-form]');
   if (erroForm) {

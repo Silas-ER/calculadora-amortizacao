@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS financiamentos (
     indexador        TEXT NOT NULL DEFAULT 'nenhum',   -- 'nenhum' ou 'TR'
     projecao_tr      TEXT NOT NULL DEFAULT 'media12',  -- TR futura: 'media12' ou 'zero'
     tr_assinatura    TEXT NOT NULL DEFAULT '',         -- controla quando recalcular as parcelas
-    ajuste_parcela   INTEGER NOT NULL DEFAULT 0,       -- parcela cujo valor veio do extrato (0 = nenhuma)
-    ajuste_valor     REAL NOT NULL DEFAULT 0,          -- valor total dessa parcela no extrato
+    ajuste_parcela   INTEGER NOT NULL DEFAULT 0,       -- obsoleto: migrado para ajustes_parcela
+    ajuste_valor     REAL NOT NULL DEFAULT 0,          -- obsoleto: migrado para ajustes_parcela
     taxa_informada   REAL NOT NULL DEFAULT 0,          -- taxa como o usuário digitou (%)
     tipo_taxa        TEXT NOT NULL DEFAULT '',         -- 'anual' (efetiva), 'nominal', 'mensal' ou '' (não informado)
     criado_em        TEXT NOT NULL DEFAULT (datetime('now'))
@@ -63,6 +63,15 @@ CREATE TABLE IF NOT EXISTS indice_tr (
 CREATE TABLE IF NOT EXISTS meta (
     chave TEXT PRIMARY KEY,
     valor TEXT NOT NULL
+);
+
+-- valores reais informados pelo usuário (extrato/boleto) para uma parcela; o resto da tabela parte deles
+CREATE TABLE IF NOT EXISTS ajustes_parcela (
+    financiamento_id INTEGER NOT NULL REFERENCES financiamentos(id) ON DELETE CASCADE,
+    numero           INTEGER NOT NULL,
+    valor_parcela    REAL,             -- prestação total cobrada (com seguros e taxas)
+    saldo_devedor    REAL,             -- saldo devedor após o pagamento dessa parcela
+    PRIMARY KEY (financiamento_id, numero)
 );
 
 CREATE TABLE IF NOT EXISTS amortizacoes (
@@ -149,3 +158,8 @@ def init_db(app):
         if "usuarios" in {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}:
             _migrar(db)
         db.executescript(SCHEMA)
+        # versão anterior guardava um único ajuste no próprio contrato: passa para ajustes_parcela
+        db.execute("INSERT OR IGNORE INTO ajustes_parcela (financiamento_id, numero, valor_parcela) "
+                   "SELECT id, ajuste_parcela, ajuste_valor FROM financiamentos WHERE ajuste_parcela > 0")
+        db.execute("UPDATE financiamentos SET ajuste_parcela = 0, ajuste_valor = 0 WHERE ajuste_parcela > 0")
+        db.commit()

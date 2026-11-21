@@ -59,8 +59,10 @@ def correcao_para_parcela(saldo, i, restantes, sistema, prestacao):
 def gerar_tabela(saldo, i, n, sistema, data_primeira, encargos=0.0, numero_inicial=1, correcoes=None, alvos=None):
     """Gera a evolução do financiamento.
 
-    alvos: {número da parcela: valor total do extrato} — a correção daquele mês passa a ser a que
-    reproduz o valor cobrado pelo banco.
+    alvos: valores reais de algumas parcelas (extrato/boleto), {número: {"parcela": x, "saldo": y}}
+    (um número sozinho vale como "parcela"). Com "parcela", a correção do mês passa a ser a que
+    reproduz o valor cobrado; com "saldo", o saldo após o pagamento é o informado e a diferença
+    entra na correção do mês. As parcelas seguintes partem desses valores.
 
     correcoes: TR (fração) de cada mês. Antes de cada parcela o saldo é atualizado pela TR,
     os juros incidem sobre o saldo atualizado e a parcela é recalculada pelo prazo restante
@@ -78,7 +80,11 @@ def gerar_tabela(saldo, i, n, sistema, data_primeira, encargos=0.0, numero_inici
     for k in range(n):
         # tudo em centavos, mês a mês (como o banco): saldo anterior + correção − amortização = saldo
         restantes = n - k
-        alvo = (alvos or {}).get(numero_inicial + k)
+        a = (alvos or {}).get(numero_inicial + k)
+        if isinstance(a, (int, float)):
+            a = {"parcela": a}
+        alvo = (a or {}).get("parcela")
+        alvo_saldo = (a or {}).get("saldo")
         if alvo and alvo - encargos > 0:
             # parcela informada pelo extrato: a correção do mês é a que reproduz esse valor
             correcao = correcao_para_parcela(saldo, i, restantes, sistema, alvo - encargos)
@@ -88,13 +94,17 @@ def gerar_tabela(saldo, i, n, sistema, data_primeira, encargos=0.0, numero_inici
             correcao = round(saldo * tr, 2)
         saldo = round(saldo + correcao, 2)
         juros = round(saldo * i, 2)
-        if alvo and sistema == "PRICE":
+        if alvo:
             amort = round(alvo - encargos - juros, 2)
         else:
             amort = round((pmt(saldo, i, restantes) - juros) if sistema == "PRICE" else saldo / restantes, 2)
         if k == n - 1 or amort > saldo:
             amort = saldo  # última parcela zera o saldo
         saldo = round(saldo - amort, 2)
+        if alvo_saldo is not None and alvo_saldo > 0 and k < n - 1:
+            # saldo informado pelo extrato: a diferença para o calculado entra como correção do mês
+            correcao = round(correcao + alvo_saldo - saldo, 2)
+            saldo = round(alvo_saldo, 2)
         linhas.append({
             "numero": numero_inicial + k,
             "data_vencimento": add_months(data_primeira, k).isoformat(),

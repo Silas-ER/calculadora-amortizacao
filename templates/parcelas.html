@@ -23,8 +23,11 @@
 {% include "_aviso_tr.html" %}
 {% if com_tr %}
 <div class="nota-faixa"><strong class="nota-rot">TR</strong> O saldo é corrigido pela TR publicada pelo Banco Central{% if est.tr.ultima %} (última: {{ est.tr.ultima|data_longa }}){% endif %}.
-  Valores com ≈ usam a projeção: {% if fin.projecao_tr == 'zero' %}TR zero{% else %}média de 12 meses, {{ est.tr.media|pct(4) }} a.m{% endif %}.
-  {% if est.tr.ajustada %}A parcela {{ '%03d'|format(est.tr.ajustada) }} (*) usa o valor do extrato.{% endif %}</div>
+  Valores com ≈ usam a projeção: {% if fin.projecao_tr == 'zero' %}TR zero{% else %}média de 12 meses, {{ est.tr.media|pct(4) }} a.m{% endif %}.</div>
+{% endif %}
+{% if not simulado %}
+<div class="nota-faixa"><strong class="nota-rot">Dica</strong> Use {{ icone('lapis', 13) }} para informar a prestação ou o saldo de uma parcela como estão no extrato: as parcelas seguintes são recalculadas a partir dela.
+  Valores informados aparecem com <span class="marca-extrato">*</span>.</div>
 {% endif %}
 
 <div class="cartao resumo">
@@ -36,7 +39,7 @@
 
 <section class="cartao cartao-tabela">
   <div class="cartao-cab">
-    <h2>Cronograma de pagamento</h2>
+    <div><h2>Cronograma de pagamento</h2><p class="muted mini-nota">Valores em R$</p></div>
     <form method="get" class="filtros" data-auto-submit>
       <input type="hidden" name="sistema" value="{{ sistema }}">
       <label class="busca">{{ icone('busca', 16) }}<span class="sr">Buscar parcela</span>
@@ -56,23 +59,47 @@
       <th>Parcela</th><th>Vencimento</th><th class="n">Prestação</th><th class="n">Amortização</th>
       <th class="n">Juros</th>{% if fin.encargos_mensais %}<th class="n">Seguros/taxas</th>{% endif %}
       {% if com_tr %}<th class="n">Correção TR</th>{% endif %}
-      <th class="n">Saldo devedor</th><th>Status</th>
+      <th class="n">Saldo devedor</th><th>Status</th>{% if not simulado %}<th><span class="sr">Ações</span></th>{% endif %}
     </tr></thead>
     <tbody>
     {% for l in linhas %}
-    <tr class="st-{{ l.status }}">
+    {% set ex = l.extrato or {} %}
+    <tr class="st-{{ l.status }}" id="p{{ l.numero }}">
       <td class="forte">{{ '%03d'|format(l.numero) }}</td>
       <td class="muted">{{ l.data_vencimento|data_longa }}</td>
-      <td class="n forte">{{ l.valor_parcela|brl }}</td>
-      <td class="n muted">{{ l.amortizacao|brl }}</td>
-      <td class="n muted">{{ l.juros|brl }}</td>
-      {% if fin.encargos_mensais %}<td class="n muted">{{ l.encargos|brl }}</td>{% endif %}
-      {% if com_tr %}<td class="n muted" {% if l.tr_projetada %}title="TR ainda não publicada: valor projetado"{% elif l.tr_extrato %}title="Calculada a partir do valor da parcela no extrato"{% endif %}>{% if l.tr_projetada %}≈ {% elif l.tr_extrato %}* {% endif %}{{ l.correcao|brl }}</td>{% endif %}
-      <td class="n forte">{{ l.saldo_devedor|brl }}</td>
+      <td class="n forte">{% if ex.parcela %}<span class="marca-extrato" title="Valor informado do extrato">*</span>{% endif %}{{ l.valor_parcela|num_br(2) }}</td>
+      <td class="n muted">{{ l.amortizacao|num_br(2) }}</td>
+      <td class="n muted">{{ l.juros|num_br(2) }}</td>
+      {% if fin.encargos_mensais %}<td class="n muted">{{ l.encargos|num_br(2) }}</td>{% endif %}
+      {% if com_tr %}<td class="n muted" {% if l.tr_projetada %}title="TR ainda não publicada: valor projetado"{% elif l.extrato %}title="Correção ajustada para bater com o extrato"{% endif %}>{% if l.tr_projetada %}≈ {% endif %}{{ l.correcao|num_br(2) }}</td>{% endif %}
+      <td class="n forte">{% if ex.saldo %}<span class="marca-extrato" title="Valor informado do extrato">*</span>{% endif %}{{ l.saldo_devedor|num_br(2) }}</td>
       <td><span class="pilula {{ l.status }}">{% if l.status == 'paga' %}{{ icone('check', 12) }} Paga{% elif l.status == 'proxima' %}• Próxima{% else %}• Prevista{% endif %}</span></td>
+      {% if not simulado %}
+      <td class="acoes-linha">
+        {% if l.pode_pagar %}
+        <form method="post" action="{{ url_for('marcar_paga', fid=fin.id, numero=l.numero) }}"
+              {% if l.numero > fin.parcelas_pagas + 1 %}data-confirma="Marcar as parcelas {{ '%03d'|format(fin.parcelas_pagas + 1) }} a {{ '%03d'|format(l.numero) }} como pagas?"{% endif %}>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="mini-btn" title="Marcar como paga" aria-label="Marcar parcela {{ l.numero }} como paga">{{ icone('check', 14) }}</button>
+        </form>
+        {% elif l.pode_desfazer %}
+        <form method="post" action="{{ url_for('marcar_paga', fid=fin.id, numero=l.numero) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="acao" value="desfazer">
+          <button class="mini-btn" title="Desmarcar (voltar a em aberto)" aria-label="Desmarcar parcela {{ l.numero }}">{{ icone('desfazer', 14) }}</button>
+        </form>
+        {% endif %}
+        {% if l.editavel %}
+        <button type="button" class="mini-btn" title="Editar com valores do extrato" aria-label="Editar parcela {{ l.numero }}"
+                data-editar-parcela data-acao="{{ url_for('editar_parcela', fid=fin.id, numero=l.numero) }}"
+                data-numero="{{ '%03d'|format(l.numero) }}" data-venc="{{ l.data_vencimento|data_longa }}"
+                data-parcela="{{ l.valor_parcela|num_br(2) }}" data-saldo="{{ l.saldo_devedor|num_br(2) }}"
+                data-paga="{{ 1 if l.status == 'paga' else 0 }}" data-ajustada="{{ 1 if l.extrato else 0 }}">{{ icone('lapis', 14) }}</button>
+        {% endif %}
+      </td>
+      {% endif %}
     </tr>
     {% else %}
-    <tr><td colspan="9" class="vazio-tabela">Nenhuma parcela encontrada.</td></tr>
+    <tr><td colspan="10" class="vazio-tabela">Nenhuma parcela encontrada.</td></tr>
     {% endfor %}
     </tbody>
   </table>
@@ -88,6 +115,26 @@
     </nav>
   </div>
 </section>
+
+{% if not simulado %}
+<dialog class="dialogo" id="dlg-parcela" aria-labelledby="dlg-titulo">
+  <form method="post" data-form-parcela>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2 id="dlg-titulo">Parcela <span data-campo="numero"></span></h2>
+    <p class="muted">Vencimento em <span data-campo="venc"></span>. Informe os valores do extrato ou do boleto; as parcelas seguintes são recalculadas a partir deles.</p>
+    <label class="campo">Prestação total <small class="muted inline-small">(com seguros e taxas)</small>
+      <span class="com-prefixo"><i>R$</i><input name="valor_parcela" data-mascara="moeda" data-campo="parcela"></span></label>
+    <label class="campo">Saldo devedor após o pagamento <small class="muted inline-small">(opcional)</small>
+      <span class="com-prefixo"><i>R$</i><input name="saldo_devedor" data-mascara="moeda" data-campo="saldo"></span></label>
+    <label class="check" data-so-aberta><input type="checkbox" name="paga" value="1"> Marcar como paga</label>
+    <div class="acoes">
+      <button class="btn">Salvar e recalcular</button>
+      <button class="btn btn-sec" type="button" data-fechar>Cancelar</button>
+    </div>
+    <button class="btn-link" name="acao" value="remover" data-so-ajustada formnovalidate>{{ icone('desfazer', 14) }} Descartar valores do extrato e usar os calculados</button>
+  </form>
+</dialog>
+{% endif %}
 
 <div class="nota-faixa"><strong class="nota-rot">SAC ou Price?</strong> No SAC, as parcelas diminuem. Na Price, a prestação é constante, sem considerar taxas e correções.</div>
 {% endblock %}

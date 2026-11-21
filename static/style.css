@@ -296,6 +296,24 @@ fieldset .segmentado label span { min-width: 0; }
 .tabela tr.st-proxima td { background: var(--linha-destaque); }
 .tabela tr.st-paga td { opacity: .6; }
 .vazio-tabela { text-align: center; color: var(--muted); padding: 40px !important; }
+/* ações por linha da planilha e marca de valor informado do extrato */
+.acoes-linha { white-space: nowrap; text-align: right; }
+.acoes-linha form { display: inline; }
+.mini-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin-left: 2px;
+  border: 1px solid var(--borda); border-radius: 7px; background: var(--sup); color: var(--txt-2); cursor: pointer; vertical-align: middle; }
+.mini-btn:hover { color: var(--acento); border-color: var(--acento); }
+.mini-btn:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+.marca-extrato { color: var(--acento); font-weight: 700; margin-right: 3px; cursor: help; }
+.mini-nota { font-size: .78rem; margin: 2px 0 0; }
+.dialogo { border: 0; border-radius: 16px; padding: 28px; width: min(540px, calc(100vw - 32px)); background: var(--sup); color: var(--txt);
+  box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.dialogo::backdrop { background: rgba(10, 20, 28, .45); }
+.dialogo h2 { margin: 0 0 6px; }
+.dialogo p { font-size: .88rem; margin: 0 0 20px; }
+.dialogo .acoes { flex-wrap: wrap; margin-top: 8px; }
+.btn-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; padding: 0; border: 0; background: none;
+  color: var(--acento); font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; }
+.btn-link:hover { text-decoration: underline; }
 .pilula { display: inline-flex; align-items: center; gap: 4px; font-size: .72rem; font-weight: 500; padding: 4px 12px; border-radius: 6px; background: var(--sup-2); color: var(--muted); white-space: nowrap; }
 .pilula.proxima { background: var(--suave); color: var(--acento); }
 .pilula.paga { background: transparent; color: var(--acento); padding-left: 0; }
