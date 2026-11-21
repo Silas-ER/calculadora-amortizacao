@@ -63,7 +63,7 @@
   </div>
 </section>
 
-<form method="post" action="{{ url_for('excluir_conta') }}" class="cartao zona-perigo" data-confirma="Excluir sua conta, todos os contratos e o histórico? Essa ação não pode ser desfeita.">
+<form method="post" action="{{ url_for('excluir_conta') }}" class="cartao zona-perigo" data-confirma="Excluir sua conta?" data-confirma-texto="Sua conta, todos os contratos e o histórico serão apagados. Essa ação não pode ser desfeita." data-confirma-ok="Excluir minha conta">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div><strong>Excluir conta</strong>
     <p class="muted">Apaga sua conta e todos os seus contratos de forma definitiva. Confirme com sua senha.</p></div>

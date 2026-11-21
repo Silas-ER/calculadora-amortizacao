@@ -46,16 +46,53 @@
     }));
   });
 
-  // confirmações
-  document.querySelectorAll('form[data-confirma]').forEach((f) => f.addEventListener('submit', (e) => {
-    if (!confirm(f.dataset.confirma)) e.preventDefault();
+  // confirmações: janela própria do app (no lugar do confirm() do navegador)
+  function confirmar({ titulo, texto, ok = 'Confirmar', perigo = false }) {
+    return new Promise((resolve) => {
+      const d = document.createElement('dialog');
+      d.className = 'dialogo dialogo-confirma';
+      d.setAttribute('aria-labelledby', 'confirma-titulo');
+      d.innerHTML = '<h2 id="confirma-titulo"></h2><p class="muted"></p><div class="acoes">'
+        + '<button type="button" class="btn" data-sim></button>'
+        + '<button type="button" class="btn btn-sec" data-nao>Cancelar</button></div>';
+      d.querySelector('h2').textContent = titulo;
+      d.querySelector('p').textContent = texto || '';
+      d.querySelector('p').hidden = !texto;
+      const sim = d.querySelector('[data-sim]');
+      sim.textContent = ok;
+      if (perigo) sim.classList.add('btn-perigo');
+      let resposta = false;
+      sim.addEventListener('click', () => { resposta = true; d.close(); });
+      d.querySelector('[data-nao]').addEventListener('click', () => d.close());
+      d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+      d.addEventListener('close', () => { d.remove(); resolve(resposta); });
+      document.body.appendChild(d);
+      d.showModal();
+      (perigo ? d.querySelector('[data-nao]') : sim).focus(); // em ação destrutiva, o foco fica no Cancelar
+    });
+  }
+
+  document.querySelectorAll('form[data-confirma]').forEach((f) => f.addEventListener('submit', async (e) => {
+    if (f.dataset.confirmado) return;
+    e.preventDefault();
+    const perigo = f.classList.contains('zona-perigo');
+    const ok = await confirmar({ titulo: f.dataset.confirma, texto: f.dataset.confirmaTexto,
+                                 ok: f.dataset.confirmaOk || (perigo ? 'Excluir' : 'Confirmar'), perigo });
+    if (ok) { f.dataset.confirmado = '1'; f.requestSubmit(e.submitter || undefined); }
   }));
-  document.querySelectorAll('[data-registrar]').forEach((b) => b.addEventListener('click', (e) => {
+  document.querySelectorAll('[data-registrar]').forEach((b) => b.addEventListener('click', async (e) => {
+    if (b.dataset.confirmado) { delete b.dataset.confirmado; return; }
+    e.preventDefault();
     const form = document.getElementById(b.getAttribute('form'));
     const valor = form.querySelector('[name=valor]').value;
-    const mod = form.querySelector('[name=modalidade]:checked').value === 'prazo' ? 'reduzindo o prazo' : 'reduzindo a parcela';
-    if (!confirm('Registrar amortização de R$ ' + valor + ', ' + mod + '?\n\n'
-      + 'O cálculo usa os dados do contrato salvo e recalcula as parcelas futuras.')) e.preventDefault();
+    const prazo = form.querySelector('[name=modalidade]:checked').value === 'prazo';
+    const ok = await confirmar({
+      titulo: `Registrar amortização de R$ ${valor}?`,
+      texto: `Você vai reduzir ${prazo ? 'o prazo' : 'o valor da parcela'}. O cálculo usa os dados do contrato salvo `
+        + 'e recalcula todas as parcelas futuras. Registre só depois de fazer a amortização no banco.',
+      ok: 'Registrar amortização',
+    });
+    if (ok) { b.dataset.confirmado = '1'; b.click(); }
   }));
 
   // menu da conta (avatar): fecha ao clicar fora ou com Esc

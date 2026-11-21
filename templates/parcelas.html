@@ -78,7 +78,7 @@
       <td class="acoes-linha">
         {% if l.pode_pagar %}
         <form method="post" action="{{ url_for('marcar_paga', fid=fin.id, numero=l.numero) }}"
-              {% if l.numero > fin.parcelas_pagas + 1 %}data-confirma="Marcar as parcelas {{ '%03d'|format(fin.parcelas_pagas + 1) }} a {{ '%03d'|format(l.numero) }} como pagas?"{% endif %}>
+              {% if l.numero > fin.parcelas_pagas + 1 %}data-confirma="Marcar as parcelas {{ '%03d'|format(fin.parcelas_pagas + 1) }} a {{ '%03d'|format(l.numero) }} como pagas?" data-confirma-texto="As parcelas anteriores a esta também ficam marcadas como pagas." data-confirma-ok="Marcar como pagas"{% endif %}>
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="mini-btn" title="Marcar como paga" aria-label="Marcar parcela {{ l.numero }} como paga">{{ icone('check', 14) }}</button>
         </form>

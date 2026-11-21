@@ -311,6 +311,9 @@ fieldset .segmentado label span { min-width: 0; }
 .dialogo h2 { margin: 0 0 6px; }
 .dialogo p { font-size: .88rem; margin: 0 0 20px; }
 .dialogo .acoes { flex-wrap: wrap; margin-top: 8px; }
+.dialogo-confirma { width: min(460px, calc(100vw - 32px)); }
+.dialogo-confirma h2 { font-size: 1.1rem; line-height: 1.4; }
+.dialogo-confirma p { margin-bottom: 24px; line-height: 1.55; }
 .btn-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; padding: 0; border: 0; background: none;
   color: var(--acento); font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; }
 .btn-link:hover { text-decoration: underline; }
