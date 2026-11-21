@@ -78,10 +78,13 @@
         <span class="com-prefixo"><i>R$</i><input name="saldo_atual" value="{{ form.saldo_atual }}" data-mascara="moeda"></span></label>
       <label class="campo">Parcelas restantes <small class="muted inline-small">(opcional)</small>
         <span class="com-sufixo"><input name="prazo_restante" value="{{ form.prazo_restante }}" data-mascara="inteiro" placeholder="Do extrato"><i>meses</i></span></label>
+      <label class="campo">Valor da próxima parcela <small class="muted inline-small">(opcional)</small>
+        <span class="com-prefixo"><i>R$</i><input name="parcela_extrato" value="{{ form.parcela_extrato }}" data-mascara="moeda"></span></label>
     </div>
     <div class="nota-faixa sem-margem-baixo">
-      <strong class="nota-rot">Por que informar o saldo?</strong>
+      <strong class="nota-rot">Por que usar o extrato?</strong>
       Se o seu contrato teve correção pela TR ou amortizações antes de usar o Amortiza, o saldo do extrato é mais preciso que o calculado.
+      O valor da próxima parcela (com seguros e taxas) acerta a correção daquele mês, que às vezes é proporcional aos dias.
       Deixe em branco para calcular pelas condições originais.
     </div>
   </section>

@@ -23,7 +23,8 @@
 {% include "_aviso_tr.html" %}
 {% if com_tr %}
 <div class="nota-faixa"><strong class="nota-rot">TR</strong> O saldo é corrigido pela TR publicada pelo Banco Central{% if est.tr.ultima %} (última: {{ est.tr.ultima|data_longa }}){% endif %}.
-  Valores com ≈ usam a projeção: {% if fin.projecao_tr == 'zero' %}TR zero{% else %}média de 12 meses, {{ est.tr.media|pct(4) }} a.m.{% endif %}</div>
+  Valores com ≈ usam a projeção: {% if fin.projecao_tr == 'zero' %}TR zero{% else %}média de 12 meses, {{ est.tr.media|pct(4) }} a.m.{% endif %}.
+  {% if est.tr.ajustada %}A parcela {{ '%03d'|format(est.tr.ajustada) }} (*) usa o valor do extrato.{% endif %}</div>
 {% endif %}
 
 <div class="cartao resumo">
@@ -66,7 +67,7 @@
       <td class="n muted">{{ l.amortizacao|brl }}</td>
       <td class="n muted">{{ l.juros|brl }}</td>
       {% if fin.encargos_mensais %}<td class="n muted">{{ l.encargos|brl }}</td>{% endif %}
-      {% if com_tr %}<td class="n muted" {% if l.tr_projetada %}title="TR ainda não publicada: valor projetado"{% endif %}>{% if l.tr_projetada %}≈ {% endif %}{{ l.correcao|brl }}</td>{% endif %}
+      {% if com_tr %}<td class="n muted" {% if l.tr_projetada %}title="TR ainda não publicada: valor projetado"{% elif l.tr_extrato %}title="Calculada a partir do valor da parcela no extrato"{% endif %}>{% if l.tr_projetada %}≈ {% elif l.tr_extrato %}* {% endif %}{{ l.correcao|brl }}</td>{% endif %}
       <td class="n forte">{{ l.saldo_devedor|brl }}</td>
       <td><span class="pilula {{ l.status }}">{% if l.status == 'paga' %}{{ icone('check', 12) }} Paga{% elif l.status == 'proxima' %}• Próxima{% else %}• Prevista{% endif %}</span></td>
     </tr>

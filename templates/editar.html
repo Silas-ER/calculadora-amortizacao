@@ -20,6 +20,11 @@
     <span class="com-sufixo"><input name="parcelas_pagas" value="{{ request.form.parcelas_pagas or fin.parcelas_pagas }}" data-mascara="inteiro" required><i>de {{ maximo }}</i></span>
     {% if minimo %}<small class="muted">Mínimo {{ minimo }}, pois há amortização registrada após essa parcela.</small>{% endif %}
   </label>
+  {% set extrato_atual = fin.ajuste_valor if fin.ajuste_parcela == fin.parcelas_pagas + 1 else '' %}
+  <label class="campo">Valor da próxima parcela no extrato <small class="muted inline-small">(opcional)</small>
+    <span class="com-prefixo"><i>R$</i><input name="parcela_extrato" value="{{ request.form.parcela_extrato or (extrato_atual|num_br(2) if extrato_atual else '') }}" data-mascara="moeda"></span>
+    <small class="muted">Com seguros e taxas. Acerta a correção daquele mês para a parcela bater com a do banco. Deixe em branco para usar só a TR.</small>
+  </label>
   {% with indexador = request.form.indexador or fin.indexador, projecao = request.form.projecao_tr or fin.projecao_tr %}{% include "_campos_tr.html" %}{% endwith %}
   <dl class="ficha ficha-2 ficha-leve">
     <div><dt>Valor financiado</dt><dd>{{ fin.valor_financiado|brl }}</dd></div>

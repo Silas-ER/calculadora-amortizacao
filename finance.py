@@ -47,8 +47,20 @@ def pmt(saldo: float, i: float, n: int) -> float:
 
 # ---------------------------------------------------------------- tabelas
 
-def gerar_tabela(saldo, i, n, sistema, data_primeira, encargos=0.0, numero_inicial=1, correcoes=None):
+def correcao_para_parcela(saldo, i, restantes, sistema, prestacao):
+    """Correção do saldo que faz a prestação (sem seguros/taxas) dar exatamente o valor informado.
+
+    Calibra pelo extrato quando o banco corrige diferente da TR cheia (ex.: TR proporcional no 1º mês).
+    """
+    fator = pmt(1.0, i, restantes) if sistema == "PRICE" else 1 / restantes + i
+    return round(prestacao / fator - saldo, 2)
+
+
+def gerar_tabela(saldo, i, n, sistema, data_primeira, encargos=0.0, numero_inicial=1, correcoes=None, alvos=None):
     """Gera a evolução do financiamento.
+
+    alvos: {número da parcela: valor total do extrato} — a correção daquele mês passa a ser a que
+    reproduz o valor cobrado pelo banco.
 
     correcoes: TR (fração) de cada mês. Antes de cada parcela o saldo é atualizado pela TR,
     os juros incidem sobre o saldo atualizado e a parcela é recalculada pelo prazo restante
@@ -65,12 +77,21 @@ def gerar_tabela(saldo, i, n, sistema, data_primeira, encargos=0.0, numero_inici
     encargos = round(encargos, 2)
     for k in range(n):
         # tudo em centavos, mês a mês (como o banco): saldo anterior + correção − amortização = saldo
-        tr = correcoes[k] if correcoes and k < len(correcoes) else 0.0
-        correcao = round(saldo * tr, 2)
-        saldo = round(saldo + correcao, 2)
         restantes = n - k
+        alvo = (alvos or {}).get(numero_inicial + k)
+        if alvo and alvo - encargos > 0:
+            # parcela informada pelo extrato: a correção do mês é a que reproduz esse valor
+            correcao = correcao_para_parcela(saldo, i, restantes, sistema, alvo - encargos)
+        else:
+            alvo = None
+            tr = correcoes[k] if correcoes and k < len(correcoes) else 0.0
+            correcao = round(saldo * tr, 2)
+        saldo = round(saldo + correcao, 2)
         juros = round(saldo * i, 2)
-        amort = round((pmt(saldo, i, restantes) - juros) if sistema == "PRICE" else saldo / restantes, 2)
+        if alvo and sistema == "PRICE":
+            amort = round(alvo - encargos - juros, 2)
+        else:
+            amort = round((pmt(saldo, i, restantes) - juros) if sistema == "PRICE" else saldo / restantes, 2)
         if k == n - 1 or amort > saldo:
             amort = saldo  # última parcela zera o saldo
         saldo = round(saldo - amort, 2)
