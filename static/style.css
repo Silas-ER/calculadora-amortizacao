@@ -119,6 +119,10 @@ fieldset .segmentado label span { min-width: 0; }
 .alerta.ok { background: var(--suave); color: var(--txt); }
 .alerta.erro { background: var(--perigo-bg); color: var(--txt); }
 .alerta.info { background: var(--info-bg); }
+.alerta.atencao { background: var(--aviso-bg); color: var(--txt); display: flex; gap: 12px; align-items: flex-start; line-height: 1.55; }
+.alerta.atencao > svg { flex-shrink: 0; margin-top: 3px; color: #B54708; }
+[data-tema="escuro"] .alerta.atencao > svg { color: #FDB022; }
+.alerta.atencao p { margin: 4px 0 0; }
 
 /* ================================================================ login / cadastro */
 .layout-auth { background: var(--sup); }
@@ -305,6 +309,33 @@ fieldset .segmentado label span { min-width: 0; }
 .mini-btn:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
 .marca-extrato { color: var(--acento); font-weight: 700; margin-right: 3px; cursor: help; }
 .mini-nota { font-size: .78rem; margin: 2px 0 0; }
+
+/* Devo amortizar? — momento do financiamento */
+.momento .cartao-cab { align-items: flex-start; gap: 20px; }
+.momento-seletor .campo { margin: 0; min-width: 260px; }
+.tabela-momento td:nth-child(2) { white-space: nowrap; }
+.momento-veredito { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 16px 18px; border-radius: 10px; background: var(--suave); margin-bottom: 22px; }
+.momento-veredito.fase-fim { background: var(--sup-2); }
+.momento-veredito p { margin: 0; font-size: .92rem; line-height: 1.55; }
+.momento-veredito .pilula { flex-shrink: 0; margin-top: 2px; }
+.momento-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 22px; }
+.momento-kpis > div { border: 1px solid var(--borda); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
+.momento-kpis .rot { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.momento-kpis strong { font-size: 1.35rem; font-weight: 600; letter-spacing: -.01em; }
+.momento-kpis small { color: var(--muted); font-size: .8rem; line-height: 1.45; }
+.barra-comp { display: flex; gap: 2px; height: 12px; margin: 8px 0 4px; }
+.barra-comp i { display: block; height: 100%; min-width: 4px; }
+.barra-comp i:first-child { border-radius: 4px 0 0 4px; }
+.barra-comp i:last-child { border-radius: 0 4px 4px 0; }
+.barra-comp .j, .legenda-comp .j { background: #8596A2; }
+.barra-comp .a, .legenda-comp .a { background: #008A73; }
+[data-tema="escuro"] .barra-comp .a, [data-tema="escuro"] .legenda-comp .a { background: #2DA892; }
+.legenda-comp { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--txt-2); }
+.legenda-comp b { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+.tabela-momento th:first-child { text-transform: none; letter-spacing: 0; font-size: .8rem; color: var(--txt-2); }
+.momento-nota { margin-top: 12px; }
+.titulo-secao { font-size: 1.15rem; margin: 32px 0 14px; }
+@media (max-width: 900px) { .momento-kpis { grid-template-columns: 1fr; } .momento .cartao-cab { flex-direction: column; } }
 .dialogo { border: 0; border-radius: 16px; padding: 28px; width: min(540px, calc(100vw - 32px)); background: var(--sup); color: var(--txt);
   box-shadow: 0 20px 60px rgba(0,0,0,.25); }
 .dialogo::backdrop { background: rgba(10, 20, 28, .45); }

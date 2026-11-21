@@ -205,6 +205,65 @@ def simular_amortizacao(ctx, valor, modalidade):
     }
 
 
+def _ctx_em(ctx, base, m):
+    """Contexto do financiamento daqui a m parcelas, se nada mudar (para comparar "agora" x "depois")."""
+    return {**ctx, "saldo": base[m - 1]["saldo_devedor"] if m else ctx["saldo"], "n_rest": ctx["n_rest"] - m,
+            "data_prox": add_months(ctx["data_prox"], m), "num_ini": ctx["num_ini"] + m,
+            "correcoes": ctx["correcoes"][m:] if ctx.get("correcoes") else None}
+
+
+def fase_do_financiamento(fracao_juros):
+    if fracao_juros >= 0.5:
+        return "inicio"   # mais juros que amortização: amortizar tem o maior efeito
+    if fracao_juros >= 0.25:
+        return "meio"
+    return "fim"
+
+
+def momento_amortizacao(ctx, valor_ref=1000.0):
+    """Quanto vale amortizar agora, olhando para a composição das parcelas.
+
+    - fracao_juros: parte da próxima prestação (sem seguros) que é juros;
+    - virada: primeira parcela em que a amortização passa a ser maior que os juros;
+    - efeito: amortizando valor_ref hoje (reduzindo o prazo), quanto deixa de ser pago em parcelas;
+    - marcos: o mesmo valor amortizado agora, em 1, 5 e 10 anos — mostra que quanto antes, melhor.
+    """
+    base = tabela_base(ctx)
+    if not base:
+        return None
+    valor_ref = min(valor_ref, ctx["saldo"])
+
+    def composicao(l):
+        aj = l["amortizacao"] + l["juros"]
+        return l["juros"] / aj if aj else 0.0
+
+    virada = next((l for l in base if l["amortizacao"] >= l["juros"]), None)
+    marcos = []
+    for m, rotulo in ((0, "Agora"), (12, "Daqui a 1 ano"), (60, "Daqui a 5 anos"), (120, "Daqui a 10 anos")):
+        if m >= len(base) - 1:
+            break
+        s = simular_amortizacao(_ctx_em(ctx, base, m), valor_ref, "prazo")
+        evitado = s["totais_base"]["total"] - s["totais_nova"]["total"]
+        marcos.append({"rotulo": rotulo, "meses": m, "numero": base[m]["numero"], "data": base[m]["data_vencimento"],
+                       "fracao_juros": composicao(base[m]), "evitado": evitado, "economia": s["economia"],
+                       "multiplicador": evitado / valor_ref if valor_ref else 0.0,
+                       "meses_reduzidos": s["meses_reduzidos"]})
+    agora = marcos[0]
+    return {
+        "proxima": base[0], "fracao_juros": agora["fracao_juros"], "fase": fase_do_financiamento(agora["fracao_juros"]),
+        "virada": virada, "ja_virou": virada is base[0],
+        "valor_ref": valor_ref, "efeito": agora, "marcos": marcos,
+    }
+
+
+def termina_antes_de(linhas, data_limite):
+    """Data da última parcela, se o contrato terminar antes de data_limite (ex.: 5 anos da contratação)."""
+    if not linhas:
+        return None
+    fim = date.fromisoformat(linhas[-1]["data_vencimento"])
+    return fim if fim < data_limite else None
+
+
 def recomendar(ctx, caixa, despesas_mensais, meses_reserva, rend_anual_liquido, renda_mensal=None):
     """Diz se vale amortizar, quanto e em qual modalidade."""
     base = tabela_base(ctx)
@@ -217,7 +276,8 @@ def recomendar(ctx, caixa, despesas_mensais, meses_reserva, rend_anual_liquido, 
     livre = max(0.0, caixa - reserva)
     spread = cet_a - rend_anual_liquido
     parcela_atual = base[0]["valor_parcela"]
-    fatia_juros = base[0]["juros"] / parcela_atual if parcela_atual else 0
+    prestacao = base[0]["juros"] + base[0]["amortizacao"]  # sem seguros e taxas
+    fatia_juros = base[0]["juros"] / prestacao if prestacao else 0
     motivos = []
 
     if livre <= 0:
@@ -258,9 +318,18 @@ def recomendar(ctx, caixa, despesas_mensais, meses_reserva, rend_anual_liquido, 
             motivos.append("Reduzir o prazo gera a maior economia total de juros.")
 
     if decisao != "nao":
-        motivos.append(
-            f"Hoje {pct(fatia_juros, 1)} da próxima parcela é juros. Quanto antes amortizar, maior o efeito: "
-            "os juros incidem sobre o saldo devedor.")
+        fase = fase_do_financiamento(fatia_juros)
+        if fase == "inicio":
+            motivos.append(
+                f"{pct(fatia_juros, 0)} da próxima parcela é juros: o contrato está na fase em que amortizar tem o "
+                "maior efeito. Cada real amortizado agora elimina parcelas do fim, cheias de juros.")
+        elif fase == "meio":
+            motivos.append(
+                f"{pct(fatia_juros, 0)} da próxima parcela é juros. Amortizar ainda compensa bem, e quanto antes, melhor.")
+        else:
+            motivos.append(
+                f"Só {pct(fatia_juros, 0)} da próxima parcela é juros: a maior parte já abate a dívida, "
+                "então o ganho por real amortizado é menor.")
         if ctx["n_rest"] <= 12:
             motivos.append("Restam poucas parcelas, então o impacto da amortização é pequeno.")
 

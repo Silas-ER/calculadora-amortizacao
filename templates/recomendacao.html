@@ -13,6 +13,75 @@
 {% if not est.ctx %}
 <div class="cartao"><p>Este financiamento já está quitado. Não há saldo para amortizar.</p></div>
 {% else %}
+{% set m = momento %}
+{% set pj = (m.fracao_juros * 100)|round|int %}
+<section class="cartao momento">
+  <div class="cartao-cab com-linha">
+    <div><h2>O momento do seu financiamento</h2>
+      <p class="muted">{{ fin.nome }}{% if fin.instituicao %} · {{ fin.instituicao }}{% endif %} · saldo de {{ est.saldo|brl }} · {{ est.ctx.n_rest }} parcelas restantes</p></div>
+    <div class="momento-seletor">{% with endpoint = 'recomendacao' %}{% include "_seletor_contrato.html" %}{% endwith %}</div>
+  </div>
+
+  <div class="momento-veredito fase-{{ m.fase }}">
+    <span class="pilula {{ 'proxima' if m.fase != 'fim' else 'prevista' }}">{{ {'inicio': 'Melhor momento para amortizar', 'meio': 'Ainda compensa bem', 'fim': 'Efeito menor'}[m.fase] }}</span>
+    <p>{% if m.fase == 'inicio' %}
+      Na sua próxima parcela, <strong>{{ pj }}% é juros</strong> e só {{ 100 - pj }}% abate a dívida. É a fase em que cada real
+      amortizado tem o maior efeito: ele elimina parcelas do fim do contrato, cheias de juros acumulados.
+    {% elif m.fase == 'meio' %}
+      Na sua próxima parcela, {{ pj }}% é juros. Você já passou do ponto em que os juros dominam, mas amortizar ainda
+      evita bem mais do que custa.
+    {% else %}
+      Só {{ pj }}% da sua próxima parcela é juros: a maior parte já abate a dívida. Amortizar ainda economiza,
+      mas o ganho por real é menor. Compare com o que o dinheiro renderia investido.
+    {% endif %}</p>
+  </div>
+
+  <div class="momento-kpis">
+    <div>
+      <span class="rot">Próxima parcela ({{ '%03d'|format(m.proxima.numero) }})</span>
+      <div class="barra-comp" role="img" aria-label="{{ pj }}% juros, {{ 100 - pj }}% amortização">
+        <i class="j" style="width: {{ pj }}%"></i><i class="a" style="width: {{ 100 - pj }}%"></i></div>
+      <div class="legenda-comp"><span><b class="j"></b>Juros {{ m.proxima.juros|brl }}</span><span><b class="a"></b>Amortização {{ m.proxima.amortizacao|brl }}</span></div>
+    </div>
+    <div>
+      <span class="rot">Ponto de virada</span>
+      {% if m.ja_virou %}
+      <strong>Já passou</strong><small>A amortização já é maior que os juros em cada parcela.</small>
+      {% elif m.virada %}
+      <strong>Parcela {{ '%03d'|format(m.virada.numero) }}</strong>
+      <small>{{ m.virada.data_vencimento|data_longa }}: a partir dela, a parcela abate mais dívida do que paga juros.</small>
+      {% else %}
+      <strong>Não ocorre</strong><small>Até o fim, os juros superam a amortização.</small>
+      {% endif %}
+    </div>
+    <div>
+      <span class="rot">Amortizar {{ m.valor_ref|brl }} hoje</span>
+      <strong>evita {{ m.efeito.evitado|brl }}</strong>
+      <small>em {{ m.efeito.meses_reduzidos }} {{ 'parcela' if m.efeito.meses_reduzidos == 1 else 'parcelas' }} a menos no fim. Cada R$ 1 amortizado evita {{ m.efeito.multiplicador|num_br(2) }} em parcelas.</small>
+    </div>
+  </div>
+
+  {% if m.marcos|length > 1 %}
+  <div class="rolagem-x">
+  <table class="tabela tabela-momento">
+    <caption class="sr">Efeito de amortizar {{ m.valor_ref|brl }} em diferentes momentos, reduzindo o prazo</caption>
+    <thead><tr><th>Quanto antes, melhor: amortizar {{ m.valor_ref|brl }}…</th><th>Parcela</th><th class="n">Juros na parcela</th>
+      <th class="n">Parcelas a menos</th><th class="n">Deixa de pagar</th><th class="n">Por R$ 1</th></tr></thead>
+    <tbody>{% for x in m.marcos %}
+      <tr {% if loop.first %}class="st-proxima"{% endif %}><td class="forte">{{ x.rotulo }}</td>
+        <td class="muted">{{ '%03d'|format(x.numero) }} · {{ x.data|data_longa }}</td>
+        <td class="n">{{ (x.fracao_juros * 100)|round|int }}%</td><td class="n">{{ x.meses_reduzidos }}</td>
+        <td class="n forte {% if loop.first %}destaque-txt{% endif %}">{{ x.evitado|brl }}</td><td class="n muted">{{ x.multiplicador|num_br(2) }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+  </div>
+  <p class="muted mini-nota momento-nota">Reduzindo o prazo, cada amortização elimina as últimas parcelas do contrato.
+    "Deixa de pagar" é a soma dessas parcelas, em valores da época{% if est.tr %}, com a TR projetada{% endif %}: como elas
+    seriam pagas só daqui a décadas, não compare esse número direto com o que o dinheiro renderia. Para isso, use o custo da dívida abaixo.</p>
+  {% endif %}
+</section>
+
+<h2 class="titulo-secao">Quanto amortizar com o seu dinheiro?</h2>
 <div class="grade-sim">
   <form method="post" class="cartao">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -69,19 +138,20 @@
     {% else %}
     <div class="painel-cab"><span class="sobretitulo">Nossa recomendação</span></div>
     <h2>Quatro respostas, uma decisão clara.</h2>
-    <p class="painel-rot">Comparamos três coisas:</p>
+    <p class="painel-rot">Além do momento do contrato, comparamos:</p>
     <ul class="painel-lista">
       <li><strong>Reserva de emergência:</strong> ela vem antes de qualquer amortização.</li>
-      <li><strong>Custo da dívida x rendimento:</strong> só compensa amortizar se a dívida custa mais do que seu dinheiro rende.</li>
+      <li><strong>Custo da dívida x rendimento:</strong> amortizar "rende" o custo da dívida, sem risco e sem imposto. Compensa se for mais do que seu dinheiro rende investido.</li>
       <li><strong>Peso da parcela na renda:</strong> define se é melhor reduzir prazo ou parcela.</li>
     </ul>
     <div class="painel-destaque">
-      <strong>Custo da sua dívida: {{ fin.taxa_anual|pct }} a.a.</strong>
+      <strong>Custo da sua dívida: {{ fin.taxa_anual|pct(2) }} a.a.{% if est.tr %} + TR{% endif %}</strong>
       <span>Taxa do contrato, sem seguros e taxas.</span>
     </div>
     {% endif %}
   </section>
 </div>
+{% include "_aviso_5_anos.html" %}
 
 {% if rec %}
 <section class="cartao">
@@ -130,6 +200,6 @@
 {% endif %}
 
 <footer class="rodape-pagina">
-  <span>Recomendação educativa, baseada em taxa fixa.{% if est.tr %} O custo da dívida inclui a TR projetada.{% else %} Não inclui TR ou IPCA.{% endif %} Não considera custos de transação. Confirme as condições com seu banco.</span>
+  <span>Recomendação educativa, baseada em taxa fixa.{% if est.tr %} O custo da dívida inclui a TR projetada.{% else %} Não inclui TR ou IPCA.{% endif %} Não considera custos de transação. Para amortizar com FGTS, é preciso respeitar o intervalo mínimo de 2 anos entre usos. Confirme as condições com seu banco.</span>
 </footer>
 {% endblock %}

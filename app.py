@@ -813,7 +813,23 @@ def amortizacoes(fid):
             flash("Informe quanto deseja amortizar.", "erro")
             simulou = False
     return render_template("amortizacoes.html", fin=fin, est=est, form=form, sim=sim, simulou=simulou,
-                           pagina="Amortizações")
+                           aviso5=aviso_5_anos(fin, sim), pagina="Amortizações")
+
+
+def aviso_5_anos(fin, sim):
+    """Data em que o contrato terminaria, se a amortização simulada o quitar em menos de 5 anos da contratação.
+
+    A data de contratação não é guardada: usamos um mês antes da 1ª parcela (aproximação).
+    """
+    if not sim:
+        return None
+    inicio = fz.add_months(date.fromisoformat(fin["data_primeira"]), -1)
+    limite = fz.add_months(inicio, 60)
+    if sim["quitacao"]:
+        return date.today() if date.today() < limite else None
+    if sim["modalidade"] != "prazo":
+        return None
+    return fz.termina_antes_de(sim["nova"], limite)
 
 
 @app.route("/financiamentos/<int:fid>/recomendacao", methods=["GET", "POST"])
@@ -821,6 +837,7 @@ def amortizacoes(fid):
 def recomendacao(fid):
     fin = get_fin(fid)
     est = carregar_estado(fin)
+    momento = fz.momento_amortizacao(est["ctx"]) if est["ctx"] else None
     form = {"caixa": "", "despesas": "", "meses_reserva": "6", "rend": "", "renda": ""}
     rec = None
     if request.method == "POST" and est["ctx"]:
@@ -832,7 +849,9 @@ def recomendacao(fid):
             flash("Confira os valores informados.", "erro")
         else:
             rec = fz.recomendar(est["ctx"], caixa, despesas, int(meses), rend / 100, num("renda"))
-    return render_template("recomendacao.html", fin=fin, est=est, form=form, rec=rec, pagina="Devo amortizar?")
+    aviso5 = aviso_5_anos(fin, rec["simulacoes"].get(rec["modalidade"])) if rec and rec.get("simulacoes") else None
+    return render_template("recomendacao.html", fin=fin, est=est, form=form, rec=rec, momento=momento,
+                           aviso5=aviso5, pagina="Devo amortizar?")
 
 
 @app.post("/financiamentos/<int:fid>/amortizacoes/registrar")

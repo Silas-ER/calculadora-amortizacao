@@ -18,14 +18,7 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <h2>Simular uma amortização</h2>
     <p class="muted">Os dados vêm do contrato salvo. Informe só o valor.</p>
-    {% if g.contratos|length > 1 %}
-    <label class="campo">Contrato
-      <select data-navegar aria-label="Escolher contrato">
-        {% for c in g.contratos %}
-        <option value="{{ url_for('amortizacoes', fid=c.id) }}" {% if c.id == fin.id %}selected{% endif %}>{{ c.nome }}{% if c.instituicao %} · {{ c.instituicao }}{% endif %}</option>
-        {% endfor %}
-      </select></label>
-    {% endif %}
+    {% with endpoint = 'amortizacoes' %}{% include "_seletor_contrato.html" %}{% endwith %}
     <dl class="ficha ficha-2 ficha-leve dados-sim">
       {% if g.contratos|length <= 1 %}<div class="ficha-largo"><dt>Contrato</dt><dd>{{ fin.nome }}{% if fin.instituicao %} · {{ fin.instituicao }}{% endif %}</dd></div>{% endif %}
       <div><dt>Saldo devedor atual</dt><dd>{{ est.saldo|brl }}</dd></div>
@@ -101,6 +94,7 @@
     {% endif %}
   </section>
 </div>
+{% include "_aviso_5_anos.html" %}
 
 <a class="cartao faixa-link" href="{{ url_for('recomendacao', fid=fin.id) }}">
   <div><strong>Não sabe se vale a pena amortizar?</strong>

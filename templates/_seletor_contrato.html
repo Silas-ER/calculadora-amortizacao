@@ -1,0 +1,9 @@
+{# Escolha do contrato quando o usuário tem mais de um. Espera: endpoint (rota com parâmetro fid) #}
+{% if g.contratos|length > 1 %}
+<label class="campo">Contrato
+  <select data-navegar aria-label="Escolher contrato">
+    {% for c in g.contratos %}
+    <option value="{{ url_for(endpoint, fid=c.id) }}" {% if c.id == fin.id %}selected{% endif %}>{{ c.nome }}{% if c.instituicao %} · {{ c.instituicao }}{% endif %}</option>
+    {% endfor %}
+  </select></label>
+{% endif %}

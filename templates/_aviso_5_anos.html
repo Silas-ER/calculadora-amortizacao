@@ -1,0 +1,13 @@
+{# Aviso de quitação em menos de 5 anos da contratação. Espera: aviso5 (data de término ou None) #}
+{% from "_icones.html" import icone %}
+{% if aviso5 %}
+<div class="alerta atencao" role="note">
+  {{ icone('alerta', 18) }}
+  <div>
+    <strong>Confira o contrato antes: o financiamento terminaria em {{ aviso5|data_longa }}, menos de 5 anos após a contratação.</strong>
+    <p>Alguns benefícios têm regras para quitação antecipada, como subsídios do Minha Casa, Minha Vida, taxas reduzidas
+      ou o diferencial de juros pago com FGTS (nos contratos da Caixa, fica no quadro resumo). Em alguns casos, quitar
+      cedo pode exigir devolução ou cancelar o benefício. Confirme com o banco antes de amortizar.</p>
+  </div>
+</div>
+{% endif %}
