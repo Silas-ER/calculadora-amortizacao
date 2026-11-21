@@ -23,7 +23,7 @@
 {% include "_aviso_tr.html" %}
 {% if com_tr %}
 <div class="nota-faixa"><strong class="nota-rot">TR</strong> O saldo é corrigido pela TR publicada pelo Banco Central{% if est.tr.ultima %} (última: {{ est.tr.ultima|data_longa }}){% endif %}.
-  Valores com ≈ usam a projeção: {% if fin.projecao_tr == 'zero' %}TR zero{% else %}média de 12 meses, {{ est.tr.media|pct(4) }} a.m.{% endif %}.
+  Valores com ≈ usam a projeção: {% if fin.projecao_tr == 'zero' %}TR zero{% else %}média de 12 meses, {{ est.tr.media|pct(4) }} a.m{% endif %}.
   {% if est.tr.ajustada %}A parcela {{ '%03d'|format(est.tr.ajustada) }} (*) usa o valor do extrato.{% endif %}</div>
 {% endif %}
 

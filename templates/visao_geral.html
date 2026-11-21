@@ -88,7 +88,7 @@
       <div><dt>Imóvel</dt><dd>{{ fin.nome }}</dd></div>
       <div><dt>Instituição</dt><dd>{{ fin.instituicao or '—' }}</dd></div>
       <div><dt>Valor financiado</dt><dd>{{ fin.valor_financiado|brl }}</dd></div>
-      <div><dt>Taxa de juros</dt><dd>{{ fin.taxa_mensal|pct }} a.m. • {{ fin.taxa_anual|pct }} a.a. efetiva
+      <div><dt>Taxa de juros</dt><dd>{{ fin.taxa_mensal|pct(4) }} a.m. • {{ fin.taxa_anual|pct(4) }} a.a. efetiva
         <small class="muted">{{ (fin.taxa_mensal * 12)|pct }} a.a. nominal</small></dd></div>
       <div><dt>Sistema</dt><dd>{{ 'SAC' if fin.sistema == 'SAC' else 'Price' }} · {{ SISTEMA_DESC[fin.sistema] }}</dd></div>
       <div><dt>Prazo original</dt><dd>{{ fin.prazo_original }} meses{% if fin.prazo_original % 12 == 0 %} ({{ fin.prazo_original // 12 }} {{ 'ano' if fin.prazo_original == 12 else 'anos' }}){% endif %}
