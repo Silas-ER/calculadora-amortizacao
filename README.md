@@ -55,6 +55,17 @@ $env:SMTP_HOST = "smtp.seuprovedor.com"; $env:SMTP_PORT = "587"
 $env:SMTP_USER = "usuario"; $env:SMTP_PASSWORD = "senha"; $env:SMTP_FROM = "Amortiza <nao-responda@seudominio.com>"
 ```
 
+## Deploy no Vercel (Postgres/Neon)
+
+Sem `DATABASE_URL`, o app usa SQLite em `instance/app.db` (desenvolvimento). Com `DATABASE_URL` (ou `POSTGRES_URL`),
+usa Postgres. O `db.py` traduz o SQL do app (placeholders `?`, `INSERT OR REPLACE`, `lastrowid`) e cria as tabelas
+na primeira execução.
+
+- `api/index.py`: entrada da função serverless; `vercel.json` manda todas as rotas para ela.
+- Variáveis no Vercel: `DATABASE_URL` (criada pela integração Neon) e `SECRET_KEY` (gere com
+  `python -c "import secrets; print(secrets.token_hex(32))"`). Opcional: `SMTP_*` para enviar e-mails.
+- Para testar contra Postgres localmente: `$env:DATABASE_URL = "postgresql://usuario:senha@host/banco"` e rode o app.
+
 ## Produção
 
 Defina a variável `SECRET_KEY`, rode com um servidor WSGI (ex.: `waitress-serve app:app`) atrás de HTTPS

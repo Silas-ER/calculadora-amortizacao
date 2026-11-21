@@ -20,17 +20,28 @@ from db import close_db, get_db, init_db
 from importer import ImportacaoErro, importar_planilha
 
 app = Flask(__name__, instance_relative_config=True)
-os.makedirs(app.instance_path, exist_ok=True)
+# Produção (Vercel): banco Postgres em DATABASE_URL, chave em SECRET_KEY e disco somente leitura.
+USA_POSTGRES = bool(os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL"))
+EM_PRODUCAO = bool(os.environ.get("VERCEL") or USA_POSTGRES)
+if not USA_POSTGRES:
+    os.makedirs(app.instance_path, exist_ok=True)
 app.config["DATABASE"] = os.path.join(app.instance_path, "app.db")
-app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB por upload
+app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4 MB por upload (limite de requisição do Vercel: 4,5 MB)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.permanent_session_lifetime = timedelta(days=30)
+if os.environ.get("VERCEL"):
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)  # https e domínio corretos atrás do Vercel
+    app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["PREFERRED_URL_SCHEME"] = "https"
 
 
 def _secret_key():
     if os.environ.get("SECRET_KEY"):
         return os.environ["SECRET_KEY"]
+    if EM_PRODUCAO:
+        raise RuntimeError("Defina a variável de ambiente SECRET_KEY (veja o README).")
     caminho = os.path.join(app.instance_path, "secret_key")
     if not os.path.exists(caminho):
         with open(caminho, "w") as f:
@@ -156,7 +167,7 @@ def login():
         return redirect(url_for("index"))
     email = ""
     if request.method == "POST":
-        email = request.form.get("email", "").strip()
+        email = request.form.get("email", "").strip().lower()
         senha = request.form.get("senha", "")
         u = get_db().execute("SELECT * FROM usuarios WHERE email = ?", (email,)).fetchone()
         if u and check_password_hash(u["password_hash"], senha):
@@ -204,7 +215,7 @@ def esqueci_senha():
         return redirect(url_for("index"))
     enviado = False
     if request.method == "POST":
-        email = request.form.get("email", "").strip()
+        email = request.form.get("email", "").strip().lower()
         db = get_db()
         u = db.execute("SELECT id, email FROM usuarios WHERE email = ?", (email,)).fetchone()
         if u:
