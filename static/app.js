@@ -80,19 +80,9 @@
                                  ok: f.dataset.confirmaOk || (perigo ? 'Excluir' : 'Confirmar'), perigo });
     if (ok) { f.dataset.confirmado = '1'; f.requestSubmit(e.submitter || undefined); }
   }));
-  document.querySelectorAll('[data-registrar]').forEach((b) => b.addEventListener('click', async (e) => {
-    if (b.dataset.confirmado) { delete b.dataset.confirmado; return; }
-    e.preventDefault();
-    const form = document.getElementById(b.getAttribute('form'));
-    const valor = form.querySelector('[name=valor]').value;
-    const prazo = form.querySelector('[name=modalidade]:checked').value === 'prazo';
-    const ok = await confirmar({
-      titulo: `Registrar amortização de R$ ${valor}?`,
-      texto: `Você vai reduzir ${prazo ? 'o prazo' : 'o valor da parcela'}. O cálculo usa os dados do contrato salvo `
-        + 'e recalcula todas as parcelas futuras. Registre só depois de fazer a amortização no banco.',
-      ok: 'Registrar amortização',
-    });
-    if (ok) { b.dataset.confirmado = '1'; b.click(); }
+  // seletor que leva para outra página (ex.: escolher o contrato na simulação)
+  document.querySelectorAll('select[data-navegar]').forEach((s) => s.addEventListener('change', () => {
+    window.location.href = s.value;
   }));
 
   // menu da conta (avatar): fecha ao clicar fora ou com Esc

@@ -348,6 +348,17 @@ fieldset .segmentado label span { min-width: 0; }
 .painel-destaque strong { display: block; color: var(--p-acento); font-size: 1.3rem; font-weight: 600; }
 .painel-destaque span { color: var(--p-muted); font-size: .8rem; }
 .painel-nota { color: var(--p-muted); font-size: .75rem; margin: 12px 0 0; }
+.painel-aplicar { border-top: 1px solid var(--p-linha); margin-top: 20px; padding-top: 18px; }
+.painel-aplicar p { color: var(--p-muted); font-size: .85rem; margin: 0 0 14px; line-height: 1.5; }
+.painel-aplicar p strong { color: var(--p-txt); }
+.painel-aplicar .acoes { gap: 10px; flex-wrap: wrap; }
+.painel-aplicar form { display: contents; }
+.btn-claro { background: var(--p-acento); color: #0B2B26; }
+.btn-claro:hover { background: #A5EEDC; color: #0B2B26; }
+.btn-contorno { background: transparent; color: var(--p-txt); border: 1px solid var(--p-linha); }
+.btn-contorno:hover { background: var(--p-caixa); color: var(--p-txt); }
+.dados-sim { margin: 4px 0 6px; }
+.dados-sim-nota { margin: 0 0 18px; }
 
 /* recomendação */
 .veredito { border-left: 4px solid var(--muted); background: var(--sup-2); border-radius: 0 10px 10px 0; padding: 18px 20px; margin-top: 8px; }

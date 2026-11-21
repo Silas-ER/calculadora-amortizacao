@@ -795,33 +795,25 @@ def amortizacoes(fid):
     fin = get_fin(fid)
     est = carregar_estado(fin)
     ctx = est["ctx"]
-    sim = None
-    form = {"modalidade": "prazo"}
+    sim, simulou = None, False
+    form = {"modalidade": "prazo", "valor": ""}
     if ctx:
+        # simulação sempre com os dados do contrato salvo; o usuário escolhe só o valor e a modalidade
         valor_ini = fz.parse_num(request.args.get("valor")) or fz.sugestao_amortizacao(est["saldo"])
-        form.update({"saldo": num_br(ctx["saldo"]), "prazo": str(ctx["n_rest"]), "taxa": num_br(ctx["i"] * 100, 2),
-                     "sistema": ctx["sistema"], "valor": num_br(valor_ini)})
-        sim_ctx = dict(ctx)
+        form["valor"] = num_br(valor_ini)
         if request.method == "POST":
             form.update({k: request.form.get(k, "").strip() for k in form if k in request.form})
-        if request.method == "POST" and request.form.get("acao") == "simular":
-            saldo, prazo, taxa = num("saldo"), num("prazo"), num("taxa")
-            if not saldo or saldo <= 0 or not prazo or prazo < 1 or prazo != int(prazo) or taxa is None or taxa < 0:
-                flash("Confira saldo devedor, prazo restante e taxa de juros.", "erro")
-            else:
-                # taxa exibida com 2 casas: se só difere pelo arredondamento, vale a do contrato
-                i = ctx["i"] if abs(taxa / 100 - ctx["i"]) <= 0.0000501 else taxa / 100
-                saldo = ctx["saldo"] if abs(saldo - ctx["saldo"]) < 0.005 else saldo
-                sim_ctx.update({"saldo": saldo, "n_rest": int(prazo), "i": i,
-                                "sistema": form["sistema"] if form["sistema"] in ("SAC", "PRICE") else ctx["sistema"]})
+            simulou = True
+        if form["modalidade"] not in ("prazo", "parcela"):
+            form["modalidade"] = "prazo"
         valor = fz.parse_num(form["valor"]) or 0
         if valor > 0:
-            sim = fz.simular_amortizacao(sim_ctx, valor, form["modalidade"] if form["modalidade"] in ("prazo", "parcela") else "prazo")
-        sim_personalizada = any(sim_ctx[c] != ctx[c] for c in ("saldo", "n_rest", "i", "sistema"))
-    else:
-        sim_personalizada = False
-    return render_template("amortizacoes.html", fin=fin, est=est, form=form, sim=sim,
-                           sim_personalizada=sim_personalizada, pagina="Amortizações")
+            sim = fz.simular_amortizacao(ctx, valor, form["modalidade"])
+        elif simulou:
+            flash("Informe quanto deseja amortizar.", "erro")
+            simulou = False
+    return render_template("amortizacoes.html", fin=fin, est=est, form=form, sim=sim, simulou=simulou,
+                           pagina="Amortizações")
 
 
 @app.route("/financiamentos/<int:fid>/recomendacao", methods=["GET", "POST"])

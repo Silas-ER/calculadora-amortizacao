@@ -17,22 +17,23 @@
   <form method="post" class="cartao" id="form-sim" action="{{ url_for('amortizacoes', fid=fin.id) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <h2>Simular uma amortização</h2>
-    <p class="muted">Ajuste os dados ao seu contrato atual.</p>
-    <div class="campos-2">
-      <label class="campo">Saldo devedor atual
-        <span class="com-prefixo"><i>R$</i><input name="saldo" value="{{ form.saldo }}" data-mascara="moeda" required></span></label>
-      <label class="campo">Prazo restante
-        <span class="com-sufixo"><input name="prazo" value="{{ form.prazo }}" data-mascara="inteiro" required><i>meses</i></span></label>
-      <label class="campo">Taxa de juros mensal
-        <span class="com-sufixo"><input name="taxa" value="{{ form.taxa }}" data-mascara="taxa" required><i>%</i></span></label>
-      <fieldset class="campo">
-        <legend>Sistema de amortização</legend>
-        <div class="segmentado">
-          <label><input type="radio" name="sistema" value="SAC" {% if form.sistema == 'SAC' %}checked{% endif %}><span>SAC</span></label>
-          <label><input type="radio" name="sistema" value="PRICE" {% if form.sistema == 'PRICE' %}checked{% endif %}><span>Price</span></label>
-        </div>
-      </fieldset>
-    </div>
+    <p class="muted">Os dados vêm do contrato salvo. Informe só o valor.</p>
+    {% if g.contratos|length > 1 %}
+    <label class="campo">Contrato
+      <select data-navegar aria-label="Escolher contrato">
+        {% for c in g.contratos %}
+        <option value="{{ url_for('amortizacoes', fid=c.id) }}" {% if c.id == fin.id %}selected{% endif %}>{{ c.nome }}{% if c.instituicao %} · {{ c.instituicao }}{% endif %}</option>
+        {% endfor %}
+      </select></label>
+    {% endif %}
+    <dl class="ficha ficha-2 ficha-leve dados-sim">
+      {% if g.contratos|length <= 1 %}<div class="ficha-largo"><dt>Contrato</dt><dd>{{ fin.nome }}{% if fin.instituicao %} · {{ fin.instituicao }}{% endif %}</dd></div>{% endif %}
+      <div><dt>Saldo devedor atual</dt><dd>{{ est.saldo|brl }}</dd></div>
+      <div><dt>Prazo restante</dt><dd>{{ est.ctx.n_rest }} meses</dd></div>
+      <div><dt>Taxa de juros</dt><dd>{{ est.ctx.i|pct(4) }} a.m.</dd></div>
+      <div><dt>Sistema</dt><dd>{{ 'SAC' if fin.sistema == 'SAC' else 'Price' }}{% if est.tr %} + TR{% endif %}</dd></div>
+    </dl>
+    <p class="muted mini-nota dados-sim-nota">Algo diferente do seu extrato? <a href="{{ url_for('parcelas', fid=fin.id) }}">Ajuste na planilha</a> ou em <a href="{{ url_for('editar', fid=fin.id) }}">Editar contrato</a>.</p>
     <label class="campo">Quanto deseja amortizar?
       <span class="com-prefixo"><i>R$</i><input name="valor" value="{{ form.valor }}" data-mascara="moeda" required data-valor-amort></span>
       <small class="muted">Use recursos próprios ou o saldo do FGTS.</small></label>
@@ -76,7 +77,25 @@
         <span>Mesmo prazo, mais folga no orçamento.</span>
       {% endif %}
     </div>
-    {% if sim_personalizada %}<p class="painel-nota">Simulação com dados ajustados por você, diferentes do contrato salvo.</p>{% endif %}
+    {% if simulou %}
+    <div class="painel-aplicar">
+      <p><strong>Vai fazer esse pagamento?</strong> Depois de amortizar no banco, aplique ao financiamento para recalcular todas as parcelas.</p>
+      <div class="acoes">
+        <form method="post" action="{{ url_for('aplicar_amortizacao', fid=fin.id) }}"
+              data-confirma="Aplicar amortização de {{ sim.valor|brl }}?"
+              data-confirma-texto="{{ 'O financiamento será quitado.' if sim.quitacao else ('O prazo cai para ' ~ sim.totais_nova.meses ~ ' meses' if sim.modalidade == 'prazo' else 'A parcela cai para ' ~ sim.totais_nova.primeira|brl) }}{{ '' if sim.quitacao else ' e todas as parcelas futuras são recalculadas.' }} Faça isso só depois de pagar no banco."
+              data-confirma-ok="Aplicar ao financiamento">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="valor" value="{{ sim.valor|num_br(2) }}">
+          <input type="hidden" name="modalidade" value="{{ sim.modalidade }}">
+          <button class="btn btn-claro">{{ icone('check', 16) }} Aplicar ao financiamento</button>
+        </form>
+        <a class="btn btn-contorno" href="{{ url_for('amortizacoes', fid=fin.id) }}">Não aplicar</a>
+      </div>
+    </div>
+    {% else %}
+    <p class="painel-nota">Simulação com um valor sugerido. Ajuste o valor e clique em <strong>Calcular economia</strong> para poder aplicar ao financiamento.</p>
+    {% endif %}
     {% else %}
     <h2>Informe um valor para simular.</h2>
     {% endif %}
@@ -93,10 +112,6 @@
 <section class="cartao" id="historico">
   <div class="cartao-cab com-linha">
     <h2>Histórico de amortizações</h2>
-    {% if est.ctx %}
-    <button class="btn btn-sec" form="form-sim" formaction="{{ url_for('aplicar_amortizacao', fid=fin.id) }}" data-registrar>
-      {{ icone('mais', 16) }} Registrar amortização</button>
-    {% endif %}
   </div>
   {% if est.amortizacoes %}
   <div class="rolagem-x">
@@ -118,7 +133,7 @@
   {% else %}
   <div class="vazio">
     <strong>Seu próximo passo começa aqui.</strong>
-    <p class="muted">Você ainda não registrou pagamentos extras. Após realizar uma amortização no banco, registre os dados para acompanhar sua evolução.</p>
+    <p class="muted">Você ainda não registrou pagamentos extras. Depois de amortizar no banco, simule o valor acima e clique em <strong>Aplicar ao financiamento</strong>.</p>
   </div>
   {% endif %}
 </section>
